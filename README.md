@@ -91,45 +91,6 @@ npm start
 - **Q** - Quit the application
 - **Ctrl+C** - Exit
 
-## Project Structure
-
-```
-cyra/
-├── src/
-│   ├── index.ts                 # Main application entry point
-│   └── functions/               # Tool definitions
-│       ├── create_file.ts       # Create new files
-│       ├── read_file.ts         # Read file contents
-│       ├── read_repository.ts   # Map repository structure
-│       └── update_file.ts       # Update existing files
-├── types/
-│   └── index.d.ts               # TypeScript type definitions
-├── SystemPrompt.MD              # AI assistant system prompt
-├── tsconfig.json                # TypeScript configuration
-├── eslint.config.ts             # ESLint configuration
-├── package.json                 # Project dependencies
-└── LICENSE                      # MIT License
-```
-
-## Available Tools
-
-cyra comes with built-in tools for file operations:
-
-### `read_repository`
-Get a map of all files in the repository structure. Useful for understanding project layout.
-
-### `read_file`
-Read the contents of a specific file.
-- **Parameters**: `file_path` (relative path)
-
-### `create_file`
-Create a new file with specified content.
-- **Parameters**: `file_path`, `content`
-
-### `update_file`
-Update an existing file's content.
-- **Parameters**: `file_path`, `content`
-
 ## Configuration
 
 ### Audio Device
