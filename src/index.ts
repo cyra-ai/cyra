@@ -133,7 +133,6 @@ const createSession = async () => {
 			},
 			onclose: (e) => {
 				console.log('Session closed.', e);
-				process.exit();
 			}
 		}
 	});
