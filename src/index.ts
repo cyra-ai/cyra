@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { GoogleGenAI, Modality, Behavior, Type } from '@google/genai';
+import { GoogleGenAI, Modality, Type } from '@google/genai';
 // @ts-ignore
 import mic from 'mic';
 import * as readline from 'readline';
