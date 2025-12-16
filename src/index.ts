@@ -8,7 +8,8 @@ import Speaker from 'speaker';
 
 import * as readline from 'readline';
 import * as path from 'path';
-import * as fs from 'fs/promises';
+import * as fsp from 'fs/promises';
+import * as fs from 'fs';
 
 readline.emitKeypressEvents(process.stdin);
 if (process.stdin.isTTY) process.stdin.setRawMode(true);
@@ -20,15 +21,31 @@ const ai = new GoogleGenAI({
 import type { CyraTool } from '../types';
 const functions: CyraTool[] = [];
 const functionsPath = path.resolve(process.cwd(), 'src', 'functions');
-const functionFiles = await fs.readdir(functionsPath);
-for (const file of functionFiles)
-	if (file.endsWith('.ts') || file.endsWith('.js')) {
-		const module = await import(path.join(functionsPath, file));
-		if (module.default) {
-			functions.push(module.default);
-			console.log(`Loaded function: ${module.default.name}`);
+
+const loadFunctions = async () => {
+	console.log('Reloading functions...');
+	functions.length = 0;
+	const functionFiles = await fsp.readdir(functionsPath);
+	for (const file of functionFiles)
+		if (file.endsWith('.ts') || file.endsWith('.js')) {
+			const modulePath = path.join(functionsPath, file);
+			// NOTE: Dynamic import cache busting is complex in Node.js ESM.
+			// New files will be detected and imported. Updates to existing files might require application restart due to module caching.
+			try {
+				const module = await import(modulePath);
+				if (module.default) {
+					functions.push(module.default);
+					console.log(`Loaded function: ${module.default.name}`);
+				};
+			} catch (error) {
+				console.error(`Error loading function ${file}:`, error);
+			};
 		};
-	};
+
+	console.log(`Total functions: ${functions.length}`);
+};
+
+await loadFunctions();
 
 // -- Set up microphone input --
 const micInstance = mic({
@@ -144,5 +161,14 @@ process.stdin.on('keypress', (str, key) => {
 });
 process.on('exit', () => {
 	micInstance.stop();
+});
+
+fs.watch(functionsPath, async (eventType, filename) => {
+	if (filename) {
+		console.log(`\nDetected ${eventType} in ${filename}, reloading functions...`);
+		await loadFunctions();
+		session.conn.close();
+		session.conn.connect();
+	};
 });
 console.log('Setup complete.');
