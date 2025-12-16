@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { GoogleGenAI, Modality } from '@google/genai';
+import { GoogleGenAI, Modality, Session } from '@google/genai';
 // @ts-expect-error no types
 import mic from 'mic';
 import Speaker from 'speaker';
@@ -67,70 +67,83 @@ const speaker = new Speaker({
 console.log('Speaker initialized.');
 
 // -- Set up session with Gemini --
-const session = await ai.live.connect({
-	model: 'gemini-2.5-flash-native-audio-preview-12-2025',
-	config: {
-		responseModalities: [Modality.AUDIO],
-		tools: [
-			{
-				functionDeclarations: functions
-			}
-		]
-	},
-	callbacks: {
-		onopen: () => {
-			listening = true;
-			console.log(
-				'Listening... Press p to pause/play, q to quit, s to save recorded audio.'
-			);
-		},
-		onmessage: (message) => {
-			// Check for tool calls at the top level
-			if (message.toolCall)
-				for (const functionCall of message.toolCall.functionCalls || []) {
-					const tool = functions.find((f) => f.name === functionCall.name);
-					if (tool)
-						tool
-							.execute(functionCall.args || {})
-							.then((result) => {
-								console.log(`Tool ${tool.name} executed.`);
-								session.sendToolResponse({
-									functionResponses: {
-										id: functionCall.id || '',
-										name: tool.name,
-										response: result
-									}
-								});
-							})
-							.catch((err) => {
-								console.error(`Error executing tool ${tool.name}:`, err);
-							});
-				};
+let session: Session | null = null;
+const createSession = async () => {
+	if (session) {
+		session.close();
+		session = null;
+		// eslint-disable-next-line no-undef
+		await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait briefly to ensure closure
+	};
 
-			if (message.serverContent?.modelTurn?.parts)
-				for (const part of message.serverContent.modelTurn.parts)
-					if (
-						part.inlineData?.mimeType === 'audio/pcm;rate=24000' &&
-						part.inlineData.data
-					) {
-						// eslint-disable-next-line no-undef
-						const audioBuffer = Buffer.from(part.inlineData.data, 'base64');
-						speaker.write(audioBuffer);
+	session = await ai.live.connect({
+		model: 'gemini-2.5-flash-native-audio-preview-12-2025',
+		config: {
+			responseModalities: [Modality.AUDIO],
+			tools: [
+				{
+					functionDeclarations: functions
+				}
+			]
+		},
+		callbacks: {
+			onopen: () => {
+				listening = true;
+				console.log(
+					'Listening... Press p to pause/play, q to quit, s to save recorded audio.'
+				);
+			},
+			onmessage: (message) => {
+				// Check for tool calls at the top level
+				if (message.toolCall)
+					for (const functionCall of message.toolCall.functionCalls || []) {
+						const tool = functions.find((f) => f.name === functionCall.name);
+						if (tool)
+							tool
+								.execute(functionCall.args || {})
+								.then((result) => {
+									if (!session) return;
+									console.log(`Tool ${tool.name} executed.`);
+									session.sendToolResponse({
+										functionResponses: {
+											id: functionCall.id || '',
+											name: tool.name,
+											response: result
+										}
+									});
+								})
+								.catch((err) => {
+									console.error(`Error executing tool ${tool.name}:`, err);
+								});
 					};
-		},
-		onerror: (err) => {
-			console.error('Session error:', err);
-		},
-		onclose: (e) => {
-			console.log('Session closed.', e);
-			process.exit();
+
+				if (message.serverContent?.modelTurn?.parts)
+					for (const part of message.serverContent.modelTurn.parts)
+						if (
+							part.inlineData?.mimeType === 'audio/pcm;rate=24000' &&
+							part.inlineData.data
+						) {
+							// eslint-disable-next-line no-undef
+							const audioBuffer = Buffer.from(part.inlineData.data, 'base64');
+							speaker.write(audioBuffer);
+						};
+			},
+			onerror: (err) => {
+				console.error('Session error:', err);
+			},
+			onclose: (e) => {
+				console.log('Session closed.', e);
+				process.exit();
+			}
 		}
-	}
-});
+	});
+};
+createSession();
 
 // -- Start sending microphone input to Gemini --
 // eslint-disable-next-line no-undef
 micInputStream.on('data', (data: Buffer) => {
+	if (!session) return;
 	// Debug: Show volume level
 	const volume = data.reduce((acc, val) => acc + Math.abs(val), 0) / data.length; // 0-255
 	const volumeBar = '█'.repeat(Math.min(20, Math.floor(volume / 255)));
@@ -155,7 +168,7 @@ process.stdin.on('keypress', (str, key) => {
 		console.log(listening ? '\nResumed listening.' : '\nPaused listening.');
 	} else if (key.name === 'q' || (key.ctrl && key.name === 'c')) {
 		console.log('\nExiting...');
-		session.close();
+		if (session) session.close();
 		process.exit();
 	};
 });
@@ -167,8 +180,7 @@ fs.watch(functionsPath, async (eventType, filename) => {
 	if (filename) {
 		console.log(`\nDetected ${eventType} in ${filename}, reloading functions...`);
 		await loadFunctions();
-		session.conn.close();
-		session.conn.connect();
+		await createSession();
 	};
 });
 console.log('Setup complete.');
