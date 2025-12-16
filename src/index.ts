@@ -1,11 +1,14 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { GoogleGenAI, Modality, Type } from '@google/genai';
+import { GoogleGenAI, Modality } from '@google/genai';
 // @ts-ignore
 import mic from 'mic';
-import * as readline from 'readline';
 import Speaker from 'speaker';
+
+import * as readline from 'readline';
+import * as path from 'path';
+import * as fs from 'fs/promises';
 
 readline.emitKeypressEvents(process.stdin);
 if (process.stdin.isTTY)
@@ -14,6 +17,20 @@ if (process.stdin.isTTY)
 const ai = new GoogleGenAI({
 	apiKey: process.env.GOOGLE_API_KEY || ''
 });
+
+import type { CyraTool } from '../types';
+const functions: CyraTool[] = [];
+const functionsPath = path.resolve(process.cwd(), 'src', 'functions');
+const functionFiles = await fs.readdir(functionsPath);
+for (const file of functionFiles) {
+	if (file.endsWith('.ts') || file.endsWith('.js')) {
+		const module = await import(path.join(functionsPath, file));
+		if (module.default) {
+			functions.push(module.default);
+			console.log(`Loaded function: ${module.default.name}`);
+		};
+	};
+};
 
 // -- Set up microphone input --
 const micInstance = mic({
@@ -41,26 +58,7 @@ const session = await ai.live.connect({
 		responseModalities: [Modality.AUDIO],
 		tools: [
 			{
-				functionDeclarations: [
-					{
-						name: 'set_alarm',
-						description: 'Set an alarm for a specified time.',
-						parameters: {
-							type: Type.OBJECT,
-							properties: {
-								date: {
-									type: Type.STRING,
-									description: 'The date to set the alarm for, in YYYY-MM-DD format. If not specified, only assume today if the time has not yet passed today; otherwise, ask the user for clarification.'
-								},
-								time: {
-									type: Type.STRING,
-									description: 'The time to set the alarm for, in HH:MM format.'
-								}
-							},
-							required: ['date', 'time']
-						}
-					}
-				]
+				functionDeclarations: functions
 			}
 		]
 	},
@@ -73,17 +71,19 @@ const session = await ai.live.connect({
 			// Check for tool calls at the top level
 			if (message.toolCall)
 				for (const functionCall of message.toolCall.functionCalls || []) {
-					if (functionCall.name === 'set_alarm') {
-						const args = functionCall.args || {};
-						console.log(`\n[Tool Call] Setting alarm for ${args.date} at ${args.time}`);
-
-						// Send the tool response back to the model
-						session.sendToolResponse({
-							functionResponses: [{
-								id: functionCall.id,
-								name: functionCall.name,
-								response: { result: 'Alarm set successfully' }
-							}]
+					const tool = functions.find(f => f.name === functionCall.name);
+					if (tool) {
+						tool.execute(functionCall.args || {}).then(result => {
+							console.log(`Tool ${tool.name} executed.`);
+							session.sendToolResponse({
+								functionResponses: {
+									id: functionCall.id || '',
+									name: tool.name,
+									response: result
+								}
+							});
+						}).catch(err => {
+							console.error(`Error executing tool ${tool.name}:`, err);
 						});
 					};
 				};
