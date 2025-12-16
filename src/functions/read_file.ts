@@ -32,11 +32,9 @@ const tool: CyraTool = {
 			return { output: content };
 		} catch (err) {
 			return {
-				error: `Error reading file at ${filePath}: ${
-					(err as Error).message
-				}`
+				error: `Error reading file at ${filePath}: ${(err as Error).message}`
 			};
-		}
+		};
 	}
 };
 

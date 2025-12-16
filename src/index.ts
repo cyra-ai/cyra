@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import { GoogleGenAI, Modality } from '@google/genai';
-// @ts-ignore
+// @ts-expect-error no types
 import mic from 'mic';
 import Speaker from 'speaker';
 
@@ -21,15 +21,14 @@ import type { CyraTool } from '../types';
 const functions: CyraTool[] = [];
 const functionsPath = path.resolve(process.cwd(), 'src', 'functions');
 const functionFiles = await fs.readdir(functionsPath);
-for (const file of functionFiles) {
+for (const file of functionFiles)
 	if (file.endsWith('.ts') || file.endsWith('.js')) {
 		const module = await import(path.join(functionsPath, file));
 		if (module.default) {
 			functions.push(module.default);
 			console.log(`Loaded function: ${module.default.name}`);
-		}
-	}
-}
+		};
+	};
 
 // -- Set up microphone input --
 const micInstance = mic({
@@ -71,13 +70,11 @@ const session = await ai.live.connect({
 		onmessage: (message) => {
 			// Check for tool calls at the top level
 			if (message.toolCall)
-				for (const functionCall of message.toolCall.functionCalls ||
-					[]) {
-					const tool = functions.find(
-						(f) => f.name === functionCall.name
-					);
-					if (tool) {
-						tool.execute(functionCall.args || {})
+				for (const functionCall of message.toolCall.functionCalls || []) {
+					const tool = functions.find((f) => f.name === functionCall.name);
+					if (tool)
+						tool
+							.execute(functionCall.args || {})
 							.then((result) => {
 								console.log(`Tool ${tool.name} executed.`);
 								session.sendToolResponse({
@@ -89,27 +86,20 @@ const session = await ai.live.connect({
 								});
 							})
 							.catch((err) => {
-								console.error(
-									`Error executing tool ${tool.name}:`,
-									err
-								);
+								console.error(`Error executing tool ${tool.name}:`, err);
 							});
-					}
-				}
+				};
 
 			if (message.serverContent?.modelTurn?.parts)
-				for (const part of message.serverContent.modelTurn.parts) {
+				for (const part of message.serverContent.modelTurn.parts)
 					if (
 						part.inlineData?.mimeType === 'audio/pcm;rate=24000' &&
 						part.inlineData.data
 					) {
-						const audioBuffer = Buffer.from(
-							part.inlineData.data,
-							'base64'
-						);
+						// eslint-disable-next-line no-undef
+						const audioBuffer = Buffer.from(part.inlineData.data, 'base64');
 						speaker.write(audioBuffer);
-					}
-				}
+					};
 		},
 		onerror: (err) => {
 			console.error('Session error:', err);
@@ -122,10 +112,10 @@ const session = await ai.live.connect({
 });
 
 // -- Start sending microphone input to Gemini --
+// eslint-disable-next-line no-undef
 micInputStream.on('data', (data: Buffer) => {
 	// Debug: Show volume level
-	const volume =
-		data.reduce((acc, val) => acc + Math.abs(val), 0) / data.length; // 0-255
+	const volume = data.reduce((acc, val) => acc + Math.abs(val), 0) / data.length; // 0-255
 	const volumeBar = '█'.repeat(Math.min(20, Math.floor(volume / 255)));
 	process.stdout.write(
 		`\rVolume: [${volumeBar.padEnd(20)}] ${Math.round(volume)}`
@@ -150,7 +140,7 @@ process.stdin.on('keypress', (str, key) => {
 		console.log('\nExiting...');
 		session.close();
 		process.exit();
-	}
+	};
 });
 process.on('exit', () => {
 	micInstance.stop();

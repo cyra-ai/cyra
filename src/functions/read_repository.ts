@@ -7,7 +7,7 @@ import type { CyraTool } from '../../types';
 const tool: CyraTool = {
 	name: 'read_repository',
 	description:
-		"Provides an map of all files for this agent's code repository. Useful for understanding the project structure and locating files.",
+		'Provides an map of all files for this agent\'s code repository. Useful for understanding the project structure and locating files.',
 	behavior: Behavior.NON_BLOCKING,
 	response: {
 		type: Type.OBJECT,
@@ -24,13 +24,12 @@ const tool: CyraTool = {
 			const gitignoreContent = await fs.readFile(gitignorePath, 'utf-8');
 			gitignoreContent.split('\n').forEach((line) => {
 				const trimmed = line.trim();
-				if (trimmed && !trimmed.startsWith('#')) {
+				if (trimmed && !trimmed.startsWith('#'))
 					ignoredPaths.add(trimmed.replace(/\/$/, ''));
-				}
 			});
 		} catch {
 			// .gitignore doesn't exist, continue
-		}
+		};
 
 		const walkDir = async (dir: string) => {
 			const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -38,14 +37,13 @@ const tool: CyraTool = {
 				if (ignoredPaths.has(entry.name)) continue;
 
 				const fullPath = path.join(dir, entry.name);
-				if (entry.isDirectory()) {
-					await walkDir(fullPath);
-				} else if (entry.isFile()) {
+				if (entry.isDirectory()) await walkDir(fullPath);
+				else if (entry.isFile()) {
 					const relativeDir = path.relative(repoPath, dir) || '.';
 					if (!fileMap[relativeDir]) fileMap[relativeDir] = [];
 					fileMap[relativeDir].push(entry.name);
-				}
-			}
+				};
+			};
 		};
 
 		await walkDir(repoPath);
