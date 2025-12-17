@@ -180,10 +180,10 @@ process.on('exit', () => {
 });
 
 fs.watch(functionsPath, async (eventType, filename) => {
-	if (filename) {
-		console.log(`\nDetected ${eventType} in ${filename}, reloading functions...`);
-		await loadFunctions();
-		await createSession();
-	};
+	if (!filename) return;
+
+	console.log(`\nDetected ${eventType} in ${filename}, reloading functions...`);
+	await loadFunctions();
+	await createSession();
 });
 console.log('Setup complete.');
