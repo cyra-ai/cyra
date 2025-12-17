@@ -52,7 +52,7 @@ const micInstance = mic({
 	rate: '16000',
 	bitwidth: '16',
 	channels: '1',
-	device: 'plughw:2,0' // Use Plugged In USB Audio Device; change as needed
+	device: 'plughw:1,0' // Use Plugged In USB Audio Device; change as needed
 });
 let listening = false;
 const micInputStream = micInstance.getAudioStream();
@@ -159,6 +159,10 @@ createSession();
 // -- Start sending microphone input to Gemini --
 // eslint-disable-next-line no-undef
 micInputStream.on('data', (data: Buffer) => {
+	// Debug: Volume level
+	const volume = data.reduce((acc, val) => acc + Math.abs(val), 0) / data.length;
+	process.stdout.write(`\rMic volume: ${volume.toFixed(2)}   `);
+
 	if (!session || !listening || !data.length) return;
 	session.sendRealtimeInput({
 		media: {
