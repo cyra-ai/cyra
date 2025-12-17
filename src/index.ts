@@ -138,7 +138,7 @@ const createSession = async () => {
 	});
 
 	// Load system prompt if it exists
-	const systemPromptPath = path.resolve(process.cwd(), 'SystemPrompt.MD');
+	const systemPromptPath = path.resolve(process.cwd(), 'SystemPrompt.md');
 	try {
 		const systemPrompt = await fsp.readFile(systemPromptPath, 'utf-8');
 		session.sendRealtimeInput({
