@@ -15,7 +15,7 @@ const tool: CyraTool = {
 	},
 	execute: async () => {
 		const repoPath = path.resolve(process.cwd());
-		const fileMap: Record<string, string[]> = {};
+		const filePaths: string[] = [];
 		const ignoredPaths = new Set(['.git']);
 
 		// Parse .gitignore if it exists
@@ -39,15 +39,14 @@ const tool: CyraTool = {
 				const fullPath = path.join(dir, entry.name);
 				if (entry.isDirectory()) await walkDir(fullPath);
 				else if (entry.isFile()) {
-					const relativeDir = path.relative(repoPath, dir) || '.';
-					if (!fileMap[relativeDir]) fileMap[relativeDir] = [];
-					fileMap[relativeDir].push(entry.name);
+					const relativePath = path.relative(repoPath, fullPath);
+					filePaths.push(relativePath);
 				};
 			};
 		};
 
 		await walkDir(repoPath);
-		return { output: JSON.stringify(fileMap, null, 4) };
+		return { output: filePaths.sort().join('\n') };
 	}
 };
 
