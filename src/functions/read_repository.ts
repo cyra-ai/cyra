@@ -13,7 +13,16 @@ const tool: CyraTool = {
 		type: Type.OBJECT,
 		description: 'A summary of the files in the repository.'
 	},
-	execute: async () => {
+	parameters: {
+		type: Type.OBJECT,
+		properties: {
+			read: {
+				type: Type.BOOLEAN,
+				description: 'Include contents of files in the response. Default is false.'
+			}
+		}
+	},
+	execute: async (args) => {
 		const repoPath = path.resolve(process.cwd());
 		const filePaths: string[] = [];
 		const ignoredPaths = new Set(['.git']);
@@ -34,19 +43,37 @@ const tool: CyraTool = {
 		const walkDir = async (dir: string) => {
 			const entries = await fs.readdir(dir, { withFileTypes: true });
 			for (const entry of entries) {
-				if (ignoredPaths.has(entry.name)) continue;
-
 				const fullPath = path.join(dir, entry.name);
+				const relativePath = path.relative(repoPath, fullPath);
+
+				// Check if the path should be ignored
+				if ([...ignoredPaths].some((ignore) => relativePath.startsWith(ignore)))
+					continue;
+
 				if (entry.isDirectory()) await walkDir(fullPath);
-				else if (entry.isFile()) {
-					const relativePath = path.relative(repoPath, fullPath);
-					filePaths.push(relativePath);
-				};
+				else if (entry.isFile()) filePaths.push(relativePath);
 			};
 		};
 
 		await walkDir(repoPath);
-		return { output: filePaths.sort().join('\n') };
+
+		const includeContents = args?.read === true;
+		const files: Record<string, string | null> = {};
+
+		for (const filePath of filePaths) {
+			if (!includeContents) {
+				files[filePath] = null;
+				continue;
+			};
+			try {
+				const content = await fs.readFile(path.join(repoPath, filePath), 'utf-8');
+				files[filePath] = content;
+			} catch {
+				files[filePath] = null; // Unable to read file
+			};
+		};
+
+		return { output: JSON.stringify(files, null, 2) };
 	}
 };
 

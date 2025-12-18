@@ -52,7 +52,7 @@ const micInstance = mic({
 	rate: '16000',
 	bitwidth: '16',
 	channels: '1',
-	device: 'plughw:1,0' // Use Plugged In USB Audio Device; change as needed
+	device: 'plughw:2,0' // Use Plugged In USB Audio Device; change as needed
 });
 let listening = false;
 const micInputStream = micInstance.getAudioStream();
@@ -76,7 +76,6 @@ const createSession = async () => {
 		// eslint-disable-next-line no-undef
 		await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait briefly to ensure closure
 	};
-	micInstance.start();
 
 	session = await ai.live.connect({
 		model: 'gemini-2.5-flash-native-audio-preview-12-2025',
@@ -91,6 +90,7 @@ const createSession = async () => {
 		callbacks: {
 			onopen: () => {
 				listening = true;
+				micInstance.start();
 				console.log(
 					'Listening... Press p to pause/play, q to quit, s to save recorded audio.'
 				);
@@ -155,11 +155,6 @@ const createSession = async () => {
 	} catch {
 		console.log('No system prompt found, continuing without it.');
 	};
-
-	session.sendRealtimeInput({
-		text:
-			'Read the entire repository, and read some functions for your context. I want you to create a get_weather function inside src/functions for me to use later.'
-	});
 };
 createSession();
 
@@ -195,7 +190,8 @@ process.on('exit', () => {
 });
 
 fs.watch(functionsPath, async (eventType, filename) => {
-	if (!filename) return;
+	if (!filename || (!filename.endsWith('.ts') && !filename.endsWith('.js')))
+		return;
 
 	console.log(`\nDetected ${eventType} in ${filename}, reloading functions...`);
 	await loadFunctions();
