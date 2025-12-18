@@ -1,14 +1,17 @@
-import { execSync } from 'child_process';
+import { exec } from 'child_process';
 import * as path from 'path';
+import { promisify } from 'util';
 import { Type, Behavior } from '@google/genai';
 
 import type { CyraTool } from '../../types';
 
+const execAsync = promisify(exec);
+
 const tool: CyraTool = {
 	name: 'execute',
 	description:
-		'Executes any command or script on the command-line in any repository or directory. Supports shell commands, TypeScript, JavaScript, Python, and any executable.',
-	behavior: Behavior.UNSPECIFIED,
+		'Executes any command or script on the command-line in any repository or directory. Supports shell commands, TypeScript, JavaScript, Python, and any executable. Non-blocking, runs in subprocess.',
+	behavior: Behavior.BLOCKING,
 	response: {
 		type: Type.OBJECT,
 		description: 'Output or error from the executed command.'
@@ -37,18 +40,17 @@ const tool: CyraTool = {
 		const resolvedPath = path.resolve(process.cwd(), directory);
 
 		try {
-			// Execute the command directly in the specified directory
-			const output = execSync(command, {
-				encoding: 'utf-8',
+			// Execute the command asynchronously in a subprocess
+			const { stdout, stderr } = await execAsync(command, {
 				cwd: resolvedPath,
-				stdio: ['pipe', 'pipe', 'pipe'],
 				maxBuffer: 1024 * 1024 * 10 // 10MB buffer
 			});
 
-			return { output: output.trim() };
+			const output = stdout.trim() || stderr.trim();
+			return { output };
 		} catch (error) {
-			const stderr = error instanceof Error ? error.message : String(error);
-			return { error: `Failed to execute command: ${stderr}` };
+			const errorMessage = error instanceof Error ? error.message : String(error);
+			return { error: `Failed to execute command: ${errorMessage}` };
 		};
 	}
 };

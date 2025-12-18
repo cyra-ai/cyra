@@ -1,13 +1,16 @@
-import { execSync } from 'child_process';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import { Type, Behavior } from '@google/genai';
 
 import type { CyraTool } from '../../types';
+
+const execAsync = promisify(exec);
 
 const tool: CyraTool = {
 	name: 'inspect_environment',
 	description:
 		'Inspects the current environment and returns information about available terminal commands, shell, and system details.',
-	behavior: Behavior.NON_BLOCKING,
+	behavior: Behavior.BLOCKING,
 	response: {
 		type: Type.OBJECT,
 		description:
@@ -53,7 +56,8 @@ const tool: CyraTool = {
 			// Get shell info
 			let shellInfo = 'Unknown';
 			try {
-				shellInfo = execSync('echo $SHELL', { encoding: 'utf-8' }).trim();
+				const { stdout } = await execAsync('echo $SHELL');
+				shellInfo = stdout.trim();
 			} catch {
 				// Fallback if SHELL env var is not set
 				shellInfo = 'Unable to determine';
@@ -62,7 +66,8 @@ const tool: CyraTool = {
 			// Get OS info
 			let osInfo = 'Unknown';
 			try {
-				osInfo = execSync('uname -s', { encoding: 'utf-8' }).trim();
+				const { stdout } = await execAsync('uname -s');
+				osInfo = stdout.trim();
 			} catch {
 				osInfo = 'Unknown';
 			};
@@ -80,7 +85,7 @@ const tool: CyraTool = {
 			const availableCommands: Record<string, boolean> = {};
 			for (const cmd of checkCommands)
 				try {
-					execSync(`command -v ${cmd}`, { encoding: 'utf-8', shell: '/bin/bash' });
+					await execAsync(`command -v ${cmd}`, { shell: '/bin/bash' });
 					availableCommands[cmd] = true;
 				} catch {
 					availableCommands[cmd] = false;
@@ -89,12 +94,8 @@ const tool: CyraTool = {
 			// Get list of all executables in PATH
 			let allExecutables: string[] = [];
 			try {
-				const result = execSync('compgen -c', {
-					encoding: 'utf-8',
-					shell: '/bin/bash',
-					timeout: 5000
-				});
-				allExecutables = result
+				const { stdout } = await execAsync('compgen -c', { shell: '/bin/bash' });
+				allExecutables = stdout
 					.split('\n')
 					.filter((cmd) => cmd.length > 0)
 					.slice(0, 100); // Limit to first 100 to avoid too much output
@@ -104,10 +105,8 @@ const tool: CyraTool = {
 					const pathCommands: Set<string> = new Set();
 					for (const dir of pathDirs)
 						try {
-							const files = execSync(`ls -1 ${dir} 2>/dev/null || true`, {
-								encoding: 'utf-8'
-							});
-							files.split('\n').forEach((f) => {
+							const { stdout } = await execAsync(`ls -1 ${dir} 2>/dev/null || true`);
+							stdout.split('\n').forEach((f) => {
 								if (f.length > 0) pathCommands.add(f);
 							});
 						} catch {
@@ -129,7 +128,8 @@ const tool: CyraTool = {
 			// Get Node.js version
 			let nodeVersion = 'Unknown';
 			try {
-				nodeVersion = execSync('node --version', { encoding: 'utf-8' }).trim();
+				const { stdout } = await execAsync('node --version');
+				nodeVersion = stdout.trim();
 			} catch {
 				nodeVersion = 'Node.js not available';
 			};
@@ -137,7 +137,8 @@ const tool: CyraTool = {
 			// Get npm version if available
 			let npmVersion = 'Unknown';
 			try {
-				npmVersion = execSync('npm --version', { encoding: 'utf-8' }).trim();
+				const { stdout } = await execAsync('npm --version');
+				npmVersion = stdout.trim();
 			} catch {
 				npmVersion = 'npm not available';
 			};
@@ -145,10 +146,8 @@ const tool: CyraTool = {
 			// Get globally installed npm CLIs
 			let npmGlobalClis: string[] = [];
 			try {
-				const result = execSync('npm list -g --depth=0 --parseable', {
-					encoding: 'utf-8'
-				});
-				npmGlobalClis = result
+				const { stdout } = await execAsync('npm list -g --depth=0 --parseable');
+				npmGlobalClis = stdout
 					.split('\n')
 					.filter((line) => line.length > 0)
 					.map((line) => {

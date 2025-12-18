@@ -123,7 +123,7 @@ const createSession = async () => {
 					'Listening... Press p to pause/play, q to quit, s to save recorded audio.'
 				);
 			},
-			onmessage: (message) => {
+			onmessage: async (message) => {
 				// Log AI responses
 				if (message.serverContent?.modelTurn?.parts)
 					for (const part of message.serverContent.modelTurn.parts)
