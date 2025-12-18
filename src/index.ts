@@ -179,8 +179,29 @@ const createSession = async () => {
 	const systemPromptPath = path.resolve(process.cwd(), 'SystemPrompt.md');
 	try {
 		const systemPrompt = await fsp.readFile(systemPromptPath, 'utf-8');
+		const inspect_environment = functions.find(
+			(f) => f.name === 'inspect_environment'
+		);
+		const read_repository = functions.find((f) => f.name === 'read_repository');
+		let repositoryStructure = 'Not available';
+		let cliTools = 'Not available';
+
+		if (read_repository) {
+			const result = await read_repository.execute({});
+			if ('output' in result) repositoryStructure = result.output;
+		};
+
+		if (inspect_environment) {
+			const result = await inspect_environment.execute({});
+			if ('output' in result) cliTools = result.output;
+		};
+
+		const populatedPrompt = systemPrompt
+			.replace('{{repository_structure}}', repositoryStructure)
+			.replace('{{cli_tools}}', cliTools);
+
 		session.sendRealtimeInput({
-			text: systemPrompt
+			text: populatedPrompt
 		});
 		console.log('Loaded system prompt.');
 	} catch {
