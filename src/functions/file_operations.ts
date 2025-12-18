@@ -8,7 +8,7 @@ const tool: CyraTool = {
 	name: 'file_operations',
 	description:
 		'Unified tool for file operations including create, read, update, and delete.',
-	behavior: Behavior.NON_BLOCKING,
+	behavior: Behavior.UNSPECIFIED,
 	response: {
 		type: Type.OBJECT,
 		description: 'Result of the file operation.'

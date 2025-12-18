@@ -8,7 +8,7 @@ const tool: CyraTool = {
 	name: 'read_repository',
 	description:
 		'Provides an map of all files for this agent\'s code repository. Useful for understanding the project structure and locating files.',
-	behavior: Behavior.NON_BLOCKING,
+	behavior: Behavior.BLOCKING,
 	response: {
 		type: Type.OBJECT,
 		description: 'A summary of the files in the repository.'

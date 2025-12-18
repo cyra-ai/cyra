@@ -22,6 +22,34 @@ import type { CyraTool } from '../types';
 const functions: CyraTool[] = [];
 const functionsPath = path.resolve(process.cwd(), 'src', 'functions');
 
+// Conversation logging
+const conversationLog: Array<{
+	role: string;
+	content: string;
+	timestamp: string;
+}> = [];
+if (!fs.existsSync(path.join(process.cwd(), 'tmp')))
+	fs.mkdirSync(path.join(process.cwd(), 'tmp'));
+const logFile = path.join(
+	process.cwd(),
+	'tmp',
+	`cyra_conversation_${Date.now()}.json`
+);
+
+const saveConversation = async () => {
+	try {
+		await fsp.writeFile(logFile, JSON.stringify(conversationLog, null, 2));
+	} catch (error) {
+		console.error('Error saving conversation:', error);
+	};
+};
+
+const addToConversation = (role: string, content: string) => {
+	const timestamp = new Date().toISOString();
+	conversationLog.push({ role, content, timestamp });
+	saveConversation();
+};
+
 const loadFunctions = async () => {
 	console.log('Reloading functions...');
 	functions.length = 0;
@@ -96,6 +124,11 @@ const createSession = async () => {
 				);
 			},
 			onmessage: (message) => {
+				// Log AI responses
+				if (message.serverContent?.modelTurn?.parts)
+					for (const part of message.serverContent.modelTurn.parts)
+						if (part.text) addToConversation('assistant', part.text);
+
 				// Check for tool calls at the top level
 				if (message.toolCall)
 					for (const functionCall of message.toolCall.functionCalls || []) {
@@ -166,6 +199,7 @@ micInputStream.on('data', (data: Buffer) => {
 	process.stdout.write(`\rMic volume: ${volume.toFixed(2)}   `);
 
 	if (!session || !listening || !data.length) return;
+
 	session.sendRealtimeInput({
 		media: {
 			data: data.toString('base64'),
@@ -181,6 +215,7 @@ process.stdin.on('keypress', (str, key) => {
 		console.log(listening ? '\nResumed listening.' : '\nPaused listening.');
 	} else if (key.name === 'q' || (key.ctrl && key.name === 'c')) {
 		console.log('\nExiting...');
+		console.log(`Conversation saved to: ${logFile}`);
 		if (session) session.close();
 		process.exit();
 	};

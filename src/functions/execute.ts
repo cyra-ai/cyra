@@ -8,7 +8,7 @@ const tool: CyraTool = {
 	name: 'execute',
 	description:
 		'Executes any command or script on the command-line in any repository or directory. Supports shell commands, TypeScript, JavaScript, Python, and any executable.',
-	behavior: Behavior.NON_BLOCKING,
+	behavior: Behavior.UNSPECIFIED,
 	response: {
 		type: Type.OBJECT,
 		description: 'Output or error from the executed command.'
