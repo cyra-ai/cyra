@@ -72,9 +72,11 @@ const createSession = async () => {
 	if (session) {
 		session.close();
 		session = null;
+		micInstance.stop();
 		// eslint-disable-next-line no-undef
 		await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait briefly to ensure closure
 	};
+	micInstance.start();
 
 	session = await ai.live.connect({
 		model: 'gemini-2.5-flash-native-audio-preview-12-2025',
@@ -153,6 +155,11 @@ const createSession = async () => {
 	} catch {
 		console.log('No system prompt found, continuing without it.');
 	};
+
+	session.sendRealtimeInput({
+		text:
+			'Read the entire repository, and read some functions for your context. I want you to create a get_weather function inside src/functions for me to use later.'
+	});
 };
 createSession();
 
@@ -171,7 +178,6 @@ micInputStream.on('data', (data: Buffer) => {
 		}
 	});
 });
-micInstance.start();
 
 // -- Handle keyboard input --
 process.stdin.on('keypress', (str, key) => {
