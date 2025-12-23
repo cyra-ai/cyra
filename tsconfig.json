@@ -1,32 +1,52 @@
 {
-  "compilerOptions": {
-	"target": "es2022",
-	"module": "es2022",
-    "lib": [
-      "ES2022",
-      "dom"
-    ],
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "moduleResolution": "node",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "typeRoots": [
-      "./src/types",
-      "./node_modules/@types"
-    ]
-  },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+	"compilerOptions": {
+		"target": "es2022",
+		"module": "es2022",
+		"lib": [
+			"ES2022",
+			"dom"
+		],
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"strict": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"moduleResolution": "node",
+		"allowJs": true,
+		"allowImportingTsExtensions": true,
+		"noImplicitAny": true,
+		"declaration": true,
+		"declarationMap": true,
+		"sourceMap": true,
+		"noEmit": true,
+		"typeRoots": [
+			"./types",
+			"./node_modules/@types"
+		],
+		"baseUrl": ".",
+		"paths": {
+			"*": [
+				"./*"
+			]
+		}
+	},
+	"ts-node": {
+		"esm": true,
+		"experimentalEsm": true,
+		"extensions": [
+			".ts",
+			".tsx",
+			".js",
+			".jsx"
+		]
+	},
+	"include": [
+		"src/**/*"
+	],
+	"exclude": [
+		"node_modules",
+		"dist"
+	]
 }

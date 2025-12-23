@@ -1,254 +1,60 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
-import { GoogleGenAI, Modality, Session } from '@google/genai';
-// @ts-expect-error no types
-import mic from 'mic';
-import Speaker from 'speaker';
-
+/* eslint-disable no-undef */
 import * as readline from 'readline';
-import * as path from 'path';
-import * as fsp from 'fs/promises';
-import * as fs from 'fs';
+import { AudioService } from './services/AudioService.ts';
+import { ToolManager } from './services/ToolManager.ts';
+import { GeminiService } from './services/GeminiService.ts';
 
-readline.emitKeypressEvents(process.stdin);
-if (process.stdin.isTTY) process.stdin.setRawMode(true);
+// Initialize services
+const audioService = new AudioService();
+const toolManager = new ToolManager();
+const geminiService = new GeminiService(toolManager);
 
-const ai = new GoogleGenAI({
-	apiKey: process.env.GOOGLE_API_KEY || ''
+// Load tools
+await toolManager.loadTools();
+
+// Setup hot reload
+toolManager.watch(async () => {
+	console.log('Tools reloaded, reconnecting session...');
+	// Reconnect session to update tools
+	await geminiService.connect((data) => audioService.play(data));
 });
 
-import type { CyraTool } from '../types';
-const functions: CyraTool[] = [];
-const functionsPath = path.resolve(process.cwd(), 'src', 'functions');
-
-// Thoughts logging
-const thoughtLog: Array<{
-	role: string;
-	content: string;
-	timestamp: string;
-}> = [];
-if (!fs.existsSync(path.join(process.cwd(), 'tmp')))
-	fs.mkdirSync(path.join(process.cwd(), 'tmp'));
-const logFile = path.join(
-	process.cwd(),
-	'tmp',
-	`cyra_thought_${Date.now()}.json`
-);
-
-const saveThoughts = async () => {
-	try {
-		await fsp.writeFile(logFile, JSON.stringify(thoughtLog, null, 2));
-	} catch (error) {
-		console.error('Error saving thought:', error);
-	};
-};
-
-const addToThoughts = (role: string, content: string) => {
-	const timestamp = new Date().toISOString();
-	thoughtLog.push({ role, content, timestamp });
-	saveThoughts();
-};
-
-const loadFunctions = async () => {
-	console.log('Reloading functions...');
-	functions.length = 0;
-	const functionFiles = await fsp.readdir(functionsPath);
-	for (const file of functionFiles)
-		if (file.endsWith('.ts') || file.endsWith('.js')) {
-			const modulePath = path.join(functionsPath, file);
-			// NOTE: Dynamic import cache busting is complex in Node.js ESM.
-			// New files will be detected and imported. Updates to existing files might require application restart due to module caching.
-			try {
-				const module = await import(modulePath);
-				if (module.default) {
-					functions.push(module.default);
-					console.log(`Loaded function: ${module.default.name}`);
-				};
-			} catch (error) {
-				console.error(`Error loading function ${file}:`, error);
-			};
-		};
-
-	console.log(`Total functions: ${functions.length}`);
-};
-
-await loadFunctions();
-
-// -- Set up microphone input --
-const micInstance = mic({
-	rate: '16000',
-	bitwidth: '16',
-	channels: '1',
-	device: 'plughw:2,0' // Use Plugged In USB Audio Device; change as needed
-});
+// Connect session
 let listening = false;
-const micInputStream = micInstance.getAudioStream();
-console.log('Microphone initialized.');
 
-// -- Set up speaker for audio output --
-const speaker = new Speaker({
-	channels: 1,
-	bitDepth: 16,
-	sampleRate: 24000
-});
-console.log('Speaker initialized.');
-
-// -- Set up session with Gemini --
-let session: Session | null = null;
-const createSession = async () => {
-	if (session) {
-		session.close();
-		session = null;
-		micInstance.stop();
-		// eslint-disable-next-line no-undef
-		await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait briefly to ensure closure
-	};
-
-	session = await ai.live.connect({
-		model: 'gemini-2.5-flash-native-audio-preview-12-2025',
-		config: {
-			responseModalities: [Modality.AUDIO],
-			tools: [
-				{
-					functionDeclarations: functions
-				}
-			]
-		},
-		callbacks: {
-			onopen: () => {
-				listening = true;
-				micInstance.start();
-				console.log(
-					'Listening... Press p to pause/play, q to quit, s to save recorded audio.'
-				);
-			},
-			onmessage: async (message) => {
-				// Log AI responses
-				if (message.serverContent?.modelTurn?.parts)
-					for (const part of message.serverContent.modelTurn.parts)
-						if (part.text) addToThoughts('assistant', part.text);
-
-				// Check for tool calls at the top level
-				if (message.toolCall)
-					for (const functionCall of message.toolCall.functionCalls || []) {
-						const tool = functions.find((f) => f.name === functionCall.name);
-						console.log(`Tool \`${tool?.name}\` executed.`, functionCall.args);
-						if (tool)
-							tool
-								.execute(functionCall.args || {})
-								.then((result) => {
-									if (!session) return;
-									if ('error' in result) console.error(result.error);
-									else console.log(result.output);
-
-									session.sendToolResponse({
-										functionResponses: {
-											id: functionCall.id || '',
-											name: tool.name,
-											response: result
-										}
-									});
-								})
-								.catch((err) => {
-									console.error(`Error executing tool ${tool.name}:`, err);
-								});
-					};
-
-				if (message.serverContent?.modelTurn?.parts)
-					for (const part of message.serverContent.modelTurn.parts)
-						if (
-							part.inlineData?.mimeType === 'audio/pcm;rate=24000' &&
-							part.inlineData.data
-						) {
-							// eslint-disable-next-line no-undef
-							const audioBuffer = Buffer.from(part.inlineData.data, 'base64');
-							speaker.write(audioBuffer);
-						};
-			},
-			onerror: (err) => {
-				console.error('Session error:', err);
-			},
-			onclose: (e) => {
-				console.log('Session closed.', e);
-			}
-		}
+const startSession = async () => {
+	await geminiService.connect((data) => {
+		audioService.play(data);
 	});
-
-	// Load system prompt if it exists
-	const systemPromptPath = path.resolve(process.cwd(), 'SystemPrompt.md');
-	try {
-		const systemPrompt = await fsp.readFile(systemPromptPath, 'utf-8');
-		const inspect_environment = functions.find(
-			(f) => f.name === 'inspect_environment'
-		);
-		const read_repository = functions.find((f) => f.name === 'read_repository');
-		let repositoryStructure = 'Not available';
-		let cliTools = 'Not available';
-
-		if (read_repository) {
-			const result = await read_repository.execute({});
-			if ('output' in result) repositoryStructure = result.output;
-		};
-
-		if (inspect_environment) {
-			const result = await inspect_environment.execute({});
-			if ('output' in result) cliTools = result.output;
-		};
-
-		const populatedPrompt = systemPrompt
-			.replace('{{repository_structure}}', repositoryStructure)
-			.replace('{{cli_tools}}', cliTools);
-
-		session.sendRealtimeInput({
-			text: populatedPrompt
-		});
-		console.log('Loaded system prompt.');
-	} catch {
-		console.log('No system prompt found, continuing without it.');
-	};
+	listening = true;
+	audioService.start();
+	console.log('Listening... Press p to pause/play, q to quit.');
 };
-createSession();
 
-// -- Start sending microphone input to Gemini --
-// eslint-disable-next-line no-undef
-micInputStream.on('data', (data: Buffer) => {
+await startSession();
+
+// Handle Audio Input
+audioService.on('input', (data: Buffer) => {
 	// Debug: Volume level
 	const volume = data.reduce((acc, val) => acc + Math.abs(val), 0) / data.length;
 	process.stdout.write(`\rMic volume: ${volume.toFixed(2)}   `);
 
-	if (!session || !listening || !data.length) return;
-
-	session.sendRealtimeInput({
-		media: {
-			data: data.toString('base64'),
-			mimeType: 'audio/pcm;rate=16000'
-		}
-	});
+	if (listening) geminiService.sendAudio(data);
 });
 
-// -- Handle keyboard input --
+// Handle Keyboard Input
+readline.emitKeypressEvents(process.stdin);
+if (process.stdin.isTTY) process.stdin.setRawMode(true);
+
 process.stdin.on('keypress', (str, key) => {
 	if (key.name === 'p') {
 		listening = !listening;
 		console.log(listening ? '\nResumed listening.' : '\nPaused listening.');
 	} else if (key.name === 'q' || (key.ctrl && key.name === 'c')) {
 		console.log('\nExiting...');
-		console.log(`Thoughts saved to: ${logFile}`);
-		if (session) session.close();
+		geminiService.disconnect();
+		audioService.stop();
+		toolManager.stopWatching();
 		process.exit();
-	};
+	}
 });
-process.on('exit', () => {
-	micInstance.stop();
-});
-
-fs.watch(functionsPath, async (eventType, filename) => {
-	if (!filename || (!filename.endsWith('.ts') && !filename.endsWith('.js')))
-		return;
-
-	console.log(`\nDetected ${eventType} in ${filename}, reloading functions...`);
-	await loadFunctions();
-	await createSession();
-});
-console.log('Setup complete.');

@@ -7,5 +7,12 @@
     "editor.formatOnSave": true,
 	"prettier.trailingComma": "none",
 	"prettier.arrowParens": "always",
-	"prettier.singleQuote": true
+	"prettier.singleQuote": true,
+	"typescript.tsdk": "node_modules/typescript/lib",
+	"typescript.enablePromptUseWorkspaceTsdk": true,
+	"typescript.validate.enable": true,
+	"typescript.preferences.importModuleSpecifierEnding": "js",
+	"[typescript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	}
 }

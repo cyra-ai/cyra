@@ -2,7 +2,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { Type, Behavior } from '@google/genai';
 
-import type { CyraTool } from '../../types';
+import type { CyraTool } from '../../types/index.d.ts';
 
 const execAsync = promisify(exec);
 
@@ -35,22 +35,22 @@ const tool: CyraTool = {
 				Array.isArray(args?.check_commands)
 					? args?.check_commands
 					: [
-						'node',
-						'npm',
-						'python',
-						'python3',
-						'git',
-						'docker',
-						'curl',
-						'wget',
-						'grep',
-						'sed',
-						'awk',
-						'jq',
-						'make',
-						'gcc',
-						'java'
-					]
+							'node',
+							'npm',
+							'python',
+							'python3',
+							'git',
+							'docker',
+							'curl',
+							'wget',
+							'grep',
+							'sed',
+							'awk',
+							'jq',
+							'make',
+							'gcc',
+							'java'
+						]
 			) as string[];
 
 			// Get shell info
@@ -61,7 +61,7 @@ const tool: CyraTool = {
 			} catch {
 				// Fallback if SHELL env var is not set
 				shellInfo = 'Unable to determine';
-			};
+			}
 
 			// Get OS info
 			let osInfo = 'Unknown';
@@ -70,7 +70,7 @@ const tool: CyraTool = {
 				osInfo = stdout.trim();
 			} catch {
 				osInfo = 'Unknown';
-			};
+			}
 
 			// Get PATH
 			let pathDirs: string[] = [];
@@ -79,7 +79,7 @@ const tool: CyraTool = {
 				pathDirs = pathEnv.split(':').filter((p) => p.length > 0);
 			} catch {
 				pathDirs = [];
-			};
+			}
 
 			// Check availability of specified commands
 			const availableCommands: Record<string, boolean> = {};
@@ -89,7 +89,7 @@ const tool: CyraTool = {
 					availableCommands[cmd] = true;
 				} catch {
 					availableCommands[cmd] = false;
-				};
+				}
 
 			// Get list of all executables in PATH
 			let allExecutables: string[] = [];
@@ -111,13 +111,13 @@ const tool: CyraTool = {
 							});
 						} catch {
 							// Skip directories we can't read
-						};
+						}
 
 					allExecutables = Array.from(pathCommands).slice(0, 100);
 				} catch {
 					allExecutables = [];
-				};
-			};
+				}
+			}
 
 			// Get environment variables count
 			const envVarCount = Object.keys(process.env).length;
@@ -132,7 +132,7 @@ const tool: CyraTool = {
 				nodeVersion = stdout.trim();
 			} catch {
 				nodeVersion = 'Node.js not available';
-			};
+			}
 
 			// Get npm version if available
 			let npmVersion = 'Unknown';
@@ -141,7 +141,7 @@ const tool: CyraTool = {
 				npmVersion = stdout.trim();
 			} catch {
 				npmVersion = 'npm not available';
-			};
+			}
 
 			// Get globally installed npm CLIs
 			let npmGlobalClis: string[] = [];
@@ -160,7 +160,7 @@ const tool: CyraTool = {
 			} catch {
 				// npm not available or error occurred
 				npmGlobalClis = [];
-			};
+			}
 
 			const output = JSON.stringify(
 				{
@@ -188,7 +188,7 @@ const tool: CyraTool = {
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error);
 			return { error: `Failed to inspect environment: ${errorMessage}` };
-		};
+		}
 	}
 };
 

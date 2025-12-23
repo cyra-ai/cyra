@@ -3,7 +3,7 @@ import * as path from 'path';
 import { promisify } from 'util';
 import { Type, Behavior } from '@google/genai';
 
-import type { CyraTool } from '../../types';
+import type { CyraTool } from '../../types/index.d.ts';
 
 const execAsync = promisify(exec);
 
@@ -51,7 +51,7 @@ const tool: CyraTool = {
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error);
 			return { error: `Failed to execute command: ${errorMessage}` };
-		};
+		}
 	}
 };
 

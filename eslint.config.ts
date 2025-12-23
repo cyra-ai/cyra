@@ -54,7 +54,7 @@ const config: Linter.Config[] = [
 		ignores: ['dist', 'node_modules', '*.js']
 	},
 	{
-		files: ['src/**/*.ts'],
+		files: ['src/**/*'],
 		languageOptions: {
 			parser: tsParser,
 			parserOptions: {
