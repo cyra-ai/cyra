@@ -40,7 +40,14 @@
 			".tsx",
 			".js",
 			".jsx"
-		]
+		],
+		"moduleTypes": {
+			"**": "esm"
+		},
+		"compilerOptions": {
+			"module": "es2022",
+			"moduleResolution": "node"
+		}
 	},
 	"include": [
 		"src/**/*"
