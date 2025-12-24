@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import {
 	DatabaseService,
 	type ConversationMessage
@@ -71,7 +70,7 @@ export class MemoryService {
 		userMessages: number;
 		assistantMessages: number;
 		thoughts: number;
-	} {
+		} {
 		const messages = this.db.getAllMessages();
 		return {
 			totalMessages: messages.length,

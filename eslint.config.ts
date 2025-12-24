@@ -51,10 +51,10 @@ const customRule: any = {
 
 const config: Linter.Config[] = [
 	{
-		ignores: ['dist', 'node_modules', '*.js']
+		ignores: ['dist', 'node_modules', '*.js', '**/*.js']
 	},
 	{
-		files: ['src/**/*'],
+		files: ['src/**/*.ts', 'src/**/*.tsx'],
 		languageOptions: {
 			parser: tsParser,
 			parserOptions: {
@@ -80,10 +80,7 @@ const config: Linter.Config[] = [
 			...tsPlugin.configs.recommended.rules,
 			'@typescript-eslint/explicit-module-boundary-types': 'warn',
 			'@typescript-eslint/no-explicit-any': 'warn',
-			'@typescript-eslint/no-unused-vars': [
-				'error',
-				{ argsIgnorePattern: '^_' }
-			],
+			'@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
 			'no-console': 'off',
 			semi: ['error', 'always'],
 			quotes: ['error', 'single'],

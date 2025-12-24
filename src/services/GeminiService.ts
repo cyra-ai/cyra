@@ -66,11 +66,9 @@ export class GeminiService {
 					);
 				},
 				onerror: (err: ErrorEvent | Error) => {
-					if (err instanceof Error) {
+					if (err instanceof Error)
 						console.error('Gemini session error:', err.message);
-					} else {
-						console.error('Gemini session error:', err);
-					}
+					else console.error('Gemini session error:', err);
 				},
 				onclose: (e: CloseEvent) => console.log('Gemini session closed.', e)
 			}
@@ -83,7 +81,7 @@ export class GeminiService {
 		if (this.session) {
 			this.session.close();
 			this.session = null;
-		}
+		};
 		this.memoryService.close();
 	}
 
@@ -111,8 +109,8 @@ export class GeminiService {
 			if (transcript) {
 				this.memoryService.addUserMessage(transcript);
 				console.log(`User: ${transcript}`);
-			}
-		}
+			};
+		};
 
 		// Handle output transcription (assistant audio)
 		if (
@@ -124,27 +122,23 @@ export class GeminiService {
 			if (transcript) {
 				this.memoryService.addAssistantMessage(transcript);
 				console.log(`Assistant: ${transcript}`);
-			}
-		}
+			};
+		};
 
 		// Log thoughts and store them in memory
-		if (message.serverContent?.modelTurn?.parts) {
-			for (const part of message.serverContent.modelTurn.parts) {
+		if (message.serverContent?.modelTurn?.parts)
+			for (const part of message.serverContent.modelTurn.parts)
 				if (part.text) {
 					this.logThought('assistant', part.text);
 					this.memoryService.addThought(part.text);
-				}
-			}
-		}
+				};
 
 		// Handle Tool Calls
-		if (message.toolCall) {
-			await this.handleToolCalls(message.toolCall);
-		}
+		if (message.toolCall) await this.handleToolCalls(message.toolCall);
 
 		// Handle Audio Output (play audio)
-		if (message.serverContent?.modelTurn?.parts) {
-			for (const part of message.serverContent.modelTurn?.parts) {
+		if (message.serverContent?.modelTurn?.parts)
+			for (const part of message.serverContent.modelTurn.parts)
 				if (
 					part.inlineData?.mimeType &&
 					part.inlineData.mimeType.startsWith('audio/pcm') &&
@@ -152,9 +146,7 @@ export class GeminiService {
 				) {
 					const audioBuffer = Buffer.from(part.inlineData.data, 'base64');
 					onAudioData(audioBuffer);
-				}
-			}
-		}
+				};
 	}
 
 	private async handleToolCalls(toolCall: LiveServerToolCall): Promise<void> {
@@ -163,7 +155,7 @@ export class GeminiService {
 			if (!toolName) {
 				console.error('Tool call without a name received.');
 				continue;
-			}
+			};
 
 			const tool = this.toolManager.getTool(toolName);
 			console.log(`Tool \`${toolName}\` executed.`);
@@ -171,14 +163,11 @@ export class GeminiService {
 			if (!tool) {
 				console.error(`Tool ${toolName} not found.`);
 				continue;
-			}
+			};
 			try {
 				const result = await tool.execute(functionCall.args || {});
-				if ('error' in result) {
-					console.error(result.error);
-				} else {
-					console.log(result.output);
-				}
+				if ('error' in result) console.error(result.error);
+				else console.log(result.output);
 
 				this.session?.sendToolResponse({
 					functionResponses: {
@@ -189,8 +178,8 @@ export class GeminiService {
 				});
 			} catch (err) {
 				console.error(`Error executing tool ${tool.name}:`, err);
-			}
-		}
+			};
+		};
 	}
 
 	private async sendSystemPrompt(): Promise<void> {
@@ -209,11 +198,11 @@ export class GeminiService {
 			if (readRepo) {
 				const res = await readRepo.execute({});
 				if ('output' in res) repoStructure = res.output;
-			}
+			};
 			if (inspectEnv) {
 				const res = await inspectEnv.execute({});
 				if ('output' in res) cliTools = res.output;
-			}
+			};
 
 			// Get conversation history
 			const conversationHistory = this.memoryService.formatHistoryForContext();
@@ -223,23 +212,20 @@ export class GeminiService {
 				.replace('{{cli_tools}}', cliTools);
 
 			// Append conversation history if there is any
-			if (conversationHistory) {
-				populatedPrompt += '\n\n' + conversationHistory;
-			}
+			if (conversationHistory) populatedPrompt += '\n\n' + conversationHistory;
 
 			this.session.sendRealtimeInput({ text: populatedPrompt });
 			console.log('System prompt sent.');
 
 			// Log conversation stats
 			const stats = this.memoryService.getStats();
-			if (stats.totalMessages > 0) {
+			if (stats.totalMessages > 0)
 				console.log(
 					`Loaded conversation: ${stats.userMessages} user messages, ${stats.assistantMessages} assistant messages, ${stats.thoughts} thoughts`
 				);
-			}
 		} catch {
 			console.log('No system prompt found or error loading it.');
-		}
+		};
 	}
 
 	private logThought(role: ConversationEntry['role'], content: string): void {

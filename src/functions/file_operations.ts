@@ -49,39 +49,39 @@ const tool: CyraTool = {
 
 		try {
 			switch (operation) {
-				case 'create': {
-					if (content === undefined)
-						return { error: 'No content argument provided for create operation.' };
-					const dirPath = path.dirname(resolvedPath);
-					await fs.mkdir(dirPath, { recursive: true });
-					await fs.writeFile(resolvedPath, content, 'utf-8');
-					return { output: `File created successfully at ${filePath}` };
-				}
-
-				case 'read': {
-					const fileContent = await fs.readFile(resolvedPath, 'utf-8');
-					return { output: fileContent };
-				}
-
-				case 'update': {
-					if (content === undefined)
-						return { error: 'No content argument provided for update operation.' };
-					await fs.access(resolvedPath);
-					await fs.writeFile(resolvedPath, content, 'utf-8');
-					return { output: `File updated successfully at ${filePath}` };
-				}
-
-				case 'delete': {
-					await fs.access(resolvedPath);
-					await fs.unlink(resolvedPath);
-					return { output: `File deleted successfully at ${filePath}` };
-				}
-
-				default:
-					return {
-						error: `Unknown operation: ${operation}. Use "create", "read", "update", or "delete".`
-					};
+			case 'create': {
+				if (content === undefined)
+					return { error: 'No content argument provided for create operation.' };
+				const dirPath = path.dirname(resolvedPath);
+				await fs.mkdir(dirPath, { recursive: true });
+				await fs.writeFile(resolvedPath, content, 'utf-8');
+				return { output: `File created successfully at ${filePath}` };
 			}
+
+			case 'read': {
+				const fileContent = await fs.readFile(resolvedPath, 'utf-8');
+				return { output: fileContent };
+			}
+
+			case 'update': {
+				if (content === undefined)
+					return { error: 'No content argument provided for update operation.' };
+				await fs.access(resolvedPath);
+				await fs.writeFile(resolvedPath, content, 'utf-8');
+				return { output: `File updated successfully at ${filePath}` };
+			}
+
+			case 'delete': {
+				await fs.access(resolvedPath);
+				await fs.unlink(resolvedPath);
+				return { output: `File deleted successfully at ${filePath}` };
+			}
+
+			default:
+				return {
+					error: `Unknown operation: ${operation}. Use "create", "read", "update", or "delete".`
+				};
+			};
 		} catch (err) {
 			// eslint-disable-next-line no-undef
 			if ((err as NodeJS.ErrnoException).code === 'ENOENT')
@@ -91,7 +91,7 @@ const tool: CyraTool = {
 			return {
 				error: `Error performing ${operation} operation at ${filePath}: ${(err as Error).message}`
 			};
-		}
+		};
 	}
 };
 

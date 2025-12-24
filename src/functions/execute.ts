@@ -51,7 +51,7 @@ const tool: CyraTool = {
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : String(error);
 			return { error: `Failed to execute command: ${errorMessage}` };
-		}
+		};
 	}
 };
 

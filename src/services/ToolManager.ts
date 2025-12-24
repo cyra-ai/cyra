@@ -33,14 +33,14 @@ export class ToolManager {
 						if (module.default) {
 							this.tools.push(module.default);
 							console.log(`Loaded tool: ${module.default.name}`);
-						}
+						};
 					} catch (error) {
 						console.error(`Error loading tool ${file}:`, error);
-					}
-				}
+					};
+				};
 		} catch (error) {
 			console.error('Error reading functions directory:', error);
-		}
+		};
 		console.log(`Total tools loaded: ${this.tools.length}`);
 	}
 

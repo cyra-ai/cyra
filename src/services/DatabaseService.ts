@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import Database from 'better-sqlite3';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -22,9 +21,7 @@ export class DatabaseService {
 
 		// Ensure db directory exists
 		const dir = path.dirname(this.dbPath);
-		if (!fs.existsSync(dir)) {
-			fs.mkdirSync(dir, { recursive: true });
-		}
+		if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
 		// Initialize database
 		this.db = new Database(this.dbPath);
@@ -39,7 +36,7 @@ export class DatabaseService {
 		} catch (err) {
 			console.error('Error initializing database schema:', err);
 			throw err;
-		}
+		};
 	}
 
 	/**

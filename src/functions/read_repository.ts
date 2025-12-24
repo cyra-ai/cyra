@@ -7,7 +7,7 @@ import type { CyraTool } from '../../types/index.d.ts';
 const tool: CyraTool = {
 	name: 'read_repository',
 	description:
-		"Provides an map of all files for this agent's code repository. Useful for understanding the project structure and locating files.",
+		'Provides an map of all files for this agent\'s code repository. Useful for understanding the project structure and locating files.',
 	behavior: Behavior.BLOCKING,
 	response: {
 		type: Type.OBJECT,
@@ -38,7 +38,7 @@ const tool: CyraTool = {
 			});
 		} catch {
 			// .gitignore doesn't exist, continue
-		}
+		};
 
 		const walkDir = async (dir: string) => {
 			const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -52,7 +52,7 @@ const tool: CyraTool = {
 
 				if (entry.isDirectory()) await walkDir(fullPath);
 				else if (entry.isFile()) filePaths.push(relativePath);
-			}
+			};
 		};
 
 		await walkDir(repoPath);
@@ -64,14 +64,14 @@ const tool: CyraTool = {
 			if (!includeContents) {
 				files[filePath] = null;
 				continue;
-			}
+			};
 			try {
 				const content = await fs.readFile(path.join(repoPath, filePath), 'utf-8');
 				files[filePath] = content;
 			} catch {
 				files[filePath] = null; // Unable to read file
-			}
-		}
+			};
+		};
 
 		return { output: JSON.stringify(files, null, 2) };
 	}
