@@ -194,63 +194,65 @@ Priority improvements for transitioning from prototype to production-grade agent
 ## 5. Type Safety
 
 ### 5.1 Remove `any` Types
-- [ ] Audit `GeminiService.ts` for `any` usage
-  - [ ] [ ] Line 67: `onAudioData: (data: Buffer) => void` parameter typing
-  - [ ] [ ] Line 79: `message: any` in `handleMessage()`
-  - [ ] [ ] Line 105: `toolCall: any` in `handleToolCalls()`
-  - [ ] [ ] Create proper types for Gemini message/toolCall objects
-- [ ] Remove `any` from other files
-  - [ ] Audit all `/* eslint-disable @typescript-eslint/no-explicit-any */`
-  - [ ] Replace with concrete types or generics
+- [x] Audit `GeminiService.ts` for `any` usage
+  - [x] Remove `any` from `handleMessage()` parameter
+  - [x] Remove `any` from `handleToolCalls()` parameter
+  - [x] Create proper types for Gemini message/toolCall objects
+- [x] Remove eslint disable comments
+  - [x] Remove `@typescript-eslint/no-explicit-any` disable
+  - [x] Remove `@typescript-eslint/explicit-module-boundary-types` disable
 
 ### 5.2 Gemini API Types
-- [ ] Extract Gemini types into `types/gemini.d.ts`
-  - [ ] Define `GeminiMessage` type
-  - [ ] Define `GeminiToolCall` type
-  - [ ] Define `GeminiSession` configuration type
-- [ ] Use these types throughout `GeminiService`
+- [x] Extract Gemini types into `types/gemini.d.ts`
+  - [x] Define `GeminiMessagePart` type
+  - [x] Define `GeminiModelTurn` type
+  - [x] Define `GeminiServerContent` type
+  - [x] Define `GeminiFunctionCall` type
+  - [x] Define `GeminiToolCall` type
+  - [x] Define `GeminiMessage` type
+  - [x] Define `ConversationEntry` type
+  - [x] Define `AudioDataCallback` type
+- [x] Use these types throughout `GeminiService`
 
-### 5.3 Tool Parameter Types
-- [ ] Create type-safe tool parameter builder
-  - [ ] Build on top of `@google/genai` Type system
-  - [ ] Allow: `StringParam`, `NumberParam`, `ArrayParam`, etc.
-  - [ ] Example:
-    ```typescript
-    const tool = createTool({
-      name: 'execute',
-      params: {
-        command: StringParam.required(),
-        directory: StringParam.optional()
-      }
-    })
-    ```
-- [ ] Add validation against parameter schema
+### 5.3 Configuration Validation
+- [x] Create `ConfigSchema` with validation in `config.ts`
+  - [x] Define interface types for all config sections
+  - [x] Add validation function for environment variables
+  - [x] Validate numeric configs (sample rate, bit depth, channels)
+  - [x] Throw helpful error if required values missing
+  - [x] Export `AppConfig` interface for type safety
+- [x] Add type guards for environment variables
+  - [x] Ensure `GOOGLE_API_KEY` is present
+  - [x] Validate numeric configs before converting
 
-### 5.4 Configuration Validation
-- [ ] Create `ConfigSchema` using Zod or ts-runtime
-  - [ ] Validate `config.ts` on startup
-  - [ ] Throw helpful error if required values missing
-  - [ ] Provide defaults for optional values
-- [ ] Add type guards for environment variables
-  - [ ] Ensure `GOOGLE_API_KEY` is present
-  - [ ] Validate numeric configs (mic rate, speaker sample rate)
+### 5.4 tsconfig.json Strictness
+- [x] Increase TypeScript strictness
+  - [x] Enable `strictNullChecks: true`
+  - [x] Enable `noUnusedLocals: true`
+  - [x] Enable `noImplicitReturns: true`
+  - [x] Verify `strict: true` and `noImplicitAny: true` already enabled
 
-### 5.5 tsconfig.json Strictness
-- [ ] Increase TypeScript strictness
-  - [ ] [ ] Enable `strict: true`
-  - [ ] [ ] Enable `noImplicitAny: true`
-  - [ ] [ ] Enable `strictNullChecks: true`
-  - [ ] [ ] Enable `noUnusedLocals: true`
-  - [ ] [ ] Enable `noImplicitReturns: true`
-- [ ] Fix compilation errors from stricter settings
+### 5.5 Utility Types
+- [x] Create `types/utils.d.ts` with utility types
+  - [x] Define `Success<T>` type
+  - [x] Define `ErrorResult` type
+  - [x] Define `Result<T>` union type
+  - [x] Define `RetryPolicy` interface
+  - [x] Define `TimeoutConfig` interface
+  - [x] Define `ErrorHandlingConfig` interface
 
-### 5.6 Generics & Interfaces
+### 5.6 Generics & Interfaces (In Progress)
 - [ ] Create generic types for common patterns
-  - [ ] `Result<T>` type for success/error handling
-  - [ ] `AsyncFunction<Args, Returns>` for tool execution
+  - [ ] Use `Result<T>` type for tool execution responses
+  - [ ] Create `AsyncFunction<Args, Returns>` for tool execution
 - [ ] Define clear interfaces
-  - [ ] Extend `CyraTool` interface with required methods
+  - [ ] Review `CyraTool` interface in `types/index.d.ts`
   - [ ] Create `ServiceInterface` base for service classes
+- [ ] Update tool files to use `Result<T>` pattern
+  - [ ] Update `execute.ts` to return `Result<string>`
+  - [ ] Update `file_operations.ts` to return `Result<string>`
+  - [ ] Update `inspect_environment.ts` to return `Result<string>`
+  - [ ] Update `read_repository.ts` to return `Result<string>`
 
 ---
 
