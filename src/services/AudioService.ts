@@ -33,7 +33,7 @@ export class AudioService extends EventEmitter {
 		});
 
 		this.setupMicListeners();
-	}
+	};
 
 	private setupMicListeners() {
 		this.micInputStream.on('data', (data: Buffer) => {
@@ -43,7 +43,7 @@ export class AudioService extends EventEmitter {
 		this.micInputStream.on('error', (err: Error) => {
 			console.error('Microphone error:', err);
 		});
-	}
+	};
 
 	public start(): void {
 		this.micInstance.start();

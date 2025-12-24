@@ -43,13 +43,12 @@ export interface AppConfig {
  * Validates and returns application configuration
  * Throws error if required values are missing or invalid
  */
-function validateConfig(): AppConfig {
+const validateConfig = (): AppConfig => {
 	const apiKey = process.env.GOOGLE_API_KEY;
-	if (!apiKey) {
+	if (!apiKey)
 		throw new Error(
 			'Missing required environment variable: GOOGLE_API_KEY. Please set it in .env file.'
 		);
-	}
 
 	const model =
 		process.env.GEMINI_MODEL || 'gemini-2.5-flash-native-audio-preview-12-2025';
@@ -67,15 +66,12 @@ function validateConfig(): AppConfig {
 	const tmpDir = process.env.TMP_DIR || 'tmp';
 
 	// Validate numeric values
-	if (isNaN(speakerChannels) || speakerChannels < 1) {
+	if (isNaN(speakerChannels) || speakerChannels < 1)
 		throw new Error('SPEAKER_CHANNELS must be a positive integer');
-	}
-	if (isNaN(speakerBitDepth) || ![8, 16, 24, 32].includes(speakerBitDepth)) {
+	if (isNaN(speakerBitDepth) || ![8, 16, 24, 32].includes(speakerBitDepth))
 		throw new Error('SPEAKER_BIT_DEPTH must be 8, 16, 24, or 32');
-	}
-	if (isNaN(speakerSampleRate) || speakerSampleRate < 8000) {
+	if (isNaN(speakerSampleRate) || speakerSampleRate < 8000)
 		throw new Error('SPEAKER_SAMPLE_RATE must be at least 8000');
-	}
 
 	return {
 		google: {
@@ -100,6 +96,6 @@ function validateConfig(): AppConfig {
 			tmpDir
 		}
 	};
-}
+};
 
 export const config = validateConfig();

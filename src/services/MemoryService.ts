@@ -60,7 +60,7 @@ export class MemoryService {
 			.join('\n\n');
 
 		return `## Conversation History\n\n${formatted}`;
-	}
+	};
 
 	/**
 	 * Get statistics about the conversation
@@ -78,7 +78,7 @@ export class MemoryService {
 			assistantMessages: messages.filter((m) => m.role === 'assistant').length,
 			thoughts: messages.filter((m) => m.role === 'thought').length
 		};
-	}
+	};
 
 	/**
 	 * Close database connection

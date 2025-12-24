@@ -27,7 +27,7 @@ export class DatabaseService {
 		this.db = new Database(this.dbPath);
 		this.db.pragma('journal_mode = WAL');
 		this.initializeSchema();
-	}
+	};
 
 	private initializeSchema(): void {
 		try {
@@ -36,7 +36,7 @@ export class DatabaseService {
 		} catch (err) {
 			console.error('Error initializing database schema:', err);
 			throw err;
-		};
+		}
 	}
 
 	/**
@@ -66,7 +66,7 @@ export class DatabaseService {
 			timestamp,
 			metadata
 		};
-	}
+	};
 
 	/**
 	 * Get all messages in the conversation
@@ -77,7 +77,7 @@ export class DatabaseService {
       ORDER BY timestamp ASC
     `);
 		return (stmt.all() as any[]).map(this.parseMessage);
-	}
+	};
 
 	/**
 	 * Get the last N messages (most recent first)
@@ -89,7 +89,7 @@ export class DatabaseService {
       LIMIT ?
     `);
 		return (stmt.all(limit) as any[]).reverse().map(this.parseMessage);
-	}
+	};
 
 	/**
 	 * Get messages of a specific role
@@ -103,7 +103,7 @@ export class DatabaseService {
       ORDER BY timestamp ASC
     `);
 		return (stmt.all(role) as any[]).map(this.parseMessage);
-	}
+	};
 
 	/**
 	 * Clear all messages (start fresh)
@@ -111,7 +111,7 @@ export class DatabaseService {
 	public clearMessages(): void {
 		const stmt = this.db.prepare('DELETE FROM messages');
 		stmt.run();
-	}
+	};
 
 	/**
 	 * Get message count
@@ -120,7 +120,7 @@ export class DatabaseService {
 		const stmt = this.db.prepare('SELECT COUNT(*) as count FROM messages');
 		const result = stmt.get() as { count: number };
 		return result.count;
-	}
+	};
 
 	/**
 	 * Close the database connection

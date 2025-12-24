@@ -10,15 +10,24 @@ const customRule: any = {
 	meta: {
 		type: 'problem',
 		docs: {
-			description: 'Enforce semicolons after control structures',
+			description:
+				'Enforce semicolons after control structures with multiple statements',
 			recommended: true
 		},
 		fixable: 'code',
 		messages: {
-			missingSemicolon: 'Missing semicolon after closing brace'
+			missingSemicolon:
+				'Missing semicolon after closing brace of multi-statement block'
 		}
 	},
-	create: (context: { sourceCode: any; report: (arg0: { node: any; messageId: string; fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any; }) => any; }) => void; }) => {
+	create: (context: {
+		sourceCode: any;
+		report: (arg0: {
+			node: any;
+			messageId: string;
+			fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) => any;
+		}) => void;
+	}) => {
 		const sourceCode = context.sourceCode;
 		return {
 			'IfStatement:exit': checkControlStructure,
@@ -28,21 +37,70 @@ const customRule: any = {
 			'WhileStatement:exit': checkControlStructure,
 			'DoWhileStatement:exit': checkControlStructure,
 			'TryStatement:exit': checkControlStructure,
-			'SwitchStatement:exit': checkControlStructure
+			'SwitchStatement:exit': checkControlStructure,
+			'FunctionDeclaration:exit': checkFunctionDeclaration,
+			'MethodDefinition:exit': checkMethodDefinition
 		};
 
 		function checkControlStructure(node: any) {
-			const tokens = sourceCode.getTokens(node);
-			const lastToken = tokens[tokens.length - 1];
+			const body = node.consequent || node.body;
+			// Only check if the body is a BlockStatement with multiple statements
+			if (body?.type === 'BlockStatement' && body.body?.length > 1) {
+				const tokens = sourceCode.getTokens(node);
+				const lastToken = tokens[tokens.length - 1];
 
-			if (lastToken && lastToken.value === '}') {
-				const nextToken = sourceCode.getTokenAfter(lastToken);
-				if (!nextToken || nextToken.value !== ';') {
-					context.report({
-						node,
-						messageId: 'missingSemicolon',
-						fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any; }) => fixer.insertTextAfter(lastToken, ';')
-					});
+				if (lastToken && lastToken.value === '}') {
+					const nextToken = sourceCode.getTokenAfter(lastToken);
+					if (!nextToken || nextToken.value !== ';') {
+						context.report({
+							node,
+							messageId: 'missingSemicolon',
+							fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
+								fixer.insertTextAfter(lastToken, ';')
+						});
+					}
+				}
+			}
+		}
+
+		function checkFunctionDeclaration(node: any) {
+			const body = node.body;
+			// Only check if the body is a BlockStatement with multiple statements
+			if (body?.type === 'BlockStatement' && body.body?.length > 1) {
+				const tokens = sourceCode.getTokens(body);
+				const lastToken = tokens[tokens.length - 1];
+
+				if (lastToken && lastToken.value === '}') {
+					const nextToken = sourceCode.getTokenAfter(lastToken);
+					if (!nextToken || nextToken.value !== ';') {
+						context.report({
+							node,
+							messageId: 'missingSemicolon',
+							fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
+								fixer.insertTextAfter(lastToken, ';')
+						});
+					}
+				}
+			}
+		}
+
+		function checkMethodDefinition(node: any) {
+			const body = node.value?.body;
+			// Only check if the body is a BlockStatement with multiple statements
+			if (body?.type === 'BlockStatement' && body.body?.length > 1) {
+				const tokens = sourceCode.getTokens(body);
+				const lastToken = tokens[tokens.length - 1];
+
+				if (lastToken && lastToken.value === '}') {
+					const nextToken = sourceCode.getTokenAfter(lastToken);
+					if (!nextToken || nextToken.value !== ';') {
+						context.report({
+							node,
+							messageId: 'missingSemicolon',
+							fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
+								fixer.insertTextAfter(lastToken, ';')
+						});
+					}
 				}
 			}
 		}

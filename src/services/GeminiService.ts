@@ -39,7 +39,7 @@ export class GeminiService {
 			config.system.tmpDir,
 			`cyra_thought_${Date.now()}.json`
 		);
-	}
+	};
 
 	public getMemoryService(): MemoryService {
 		return this.memoryService;
@@ -75,7 +75,7 @@ export class GeminiService {
 		});
 
 		await this.sendSystemPrompt();
-	}
+	};
 
 	public async disconnect(): Promise<void> {
 		if (this.session) {
@@ -83,7 +83,7 @@ export class GeminiService {
 			this.session = null;
 		};
 		this.memoryService.close();
-	}
+	};
 
 	public sendAudio(data: Buffer): void {
 		if (!this.session) return;
@@ -93,7 +93,7 @@ export class GeminiService {
 				mimeType: 'audio/pcm;rate=16000'
 			}
 		});
-	}
+	};
 
 	private async handleMessage(
 		message: LiveServerMessage,
@@ -147,7 +147,7 @@ export class GeminiService {
 					const audioBuffer = Buffer.from(part.inlineData.data, 'base64');
 					onAudioData(audioBuffer);
 				};
-	}
+	};
 
 	private async handleToolCalls(toolCall: LiveServerToolCall): Promise<void> {
 		for (const functionCall of toolCall.functionCalls || []) {
@@ -178,9 +178,9 @@ export class GeminiService {
 				});
 			} catch (err) {
 				console.error(`Error executing tool ${tool.name}:`, err);
-			};
+			}
 		};
-	}
+	};
 
 	private async sendSystemPrompt(): Promise<void> {
 		if (!this.session) return;
@@ -225,8 +225,8 @@ export class GeminiService {
 				);
 		} catch {
 			console.log('No system prompt found or error loading it.');
-		};
-	}
+		}
+	};
 
 	private logThought(role: ConversationEntry['role'], content: string): void {
 		const timestamp = new Date().toISOString();
@@ -236,5 +236,5 @@ export class GeminiService {
 		fsp
 			.writeFile(this.logFile, JSON.stringify(this.thoughtLog, null, 2))
 			.catch((err) => console.error('Error saving thoughts:', err));
-	}
+	};
 }
