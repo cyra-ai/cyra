@@ -7,34 +7,26 @@ Priority improvements for transitioning from prototype to production-grade agent
 ## 1. Conversation Memory
 
 ### 1.1 Session Persistence with SQLite
-- [ ] Set up SQLite database infrastructure
-  - [ ] Install dependencies: `better-sqlite3` (sync) or `sqlite3` (async)
-  - [ ] Create database schema file: `db/schema.sql`
-  - [ ] Create `src/services/DatabaseService.ts` to manage SQLite connection
-  - [ ] Auto-initialize database on first run (create tables if they don't exist)
-- [ ] Create database schema
-  - [ ] `sessions` table: `id (PRIMARY KEY), createdAt, updatedAt, title`
-  - [ ] `messages` table: `id (PRIMARY KEY), sessionId (FK), role, content, timestamp, metadata`
-  - [ ] Add indexes on `sessionId` and `timestamp` for fast queries
-- [ ] Create `MemoryService` class to manage conversation history
-  - [ ] Implement CRUD operations for sessions and messages
-  - [ ] Store message pairs: `{ role: 'user'|'assistant', content: string, timestamp }`
-  - [ ] Auto-save messages after each user-AI exchange
-- [ ] Capture full conversation transcript (currently only AI thoughts are logged)
-  - [ ] Transcribe user audio input to text (via Gemini's transcription or separate API)
-  - [ ] Extract/capture AI's spoken responses from audio output
-  - [ ] Insert into `messages` table with role and timestamp
-- [ ] Extend `GeminiService` to load/inject previous messages
-  - [ ] Add `loadSessionHistory(sessionId)` method
-  - [ ] Query SQLite for previous messages
-  - [ ] Format previous messages for Gemini context injection
-  - [ ] Include context window size limits (e.g., last 10 messages to stay within token limits)
-- [ ] Create session management CLI commands
-  - [ ] Generate unique session IDs: `${Date.now()}`
-  - [ ] Resume conversation: `npm run dev -- --session <sessionId>`
-  - [ ] List sessions: `npm run dev -- --list-sessions`
-  - [ ] Show session details: `npm run dev -- --session-info <sessionId>`
-  - [ ] Delete old sessions: `npm run dev -- --delete-session <sessionId>`
+- [x] Set up SQLite database infrastructure
+  - [x] Install dependencies: `better-sqlite3` (sync) or `sqlite3` (async)
+  - [x] Create database schema file: `db/schema.sql`
+  - [x] Create `src/services/DatabaseService.ts` to manage SQLite connection
+  - [x] Auto-initialize database on first run (create tables if they don't exist)
+- [x] Create database schema
+  - [x] `messages` table: `id (PRIMARY KEY), role, content, timestamp, metadata`
+  - [x] Add indexes on `timestamp` and `role` for fast queries
+- [x] Create `MemoryService` class to manage conversation history
+  - [x] Implement CRUD operations for messages
+  - [x] Store message pairs: `{ role: 'user'|'assistant'|'system'|'thought', content: string, timestamp }`
+  - [x] Auto-save messages after each user-AI exchange
+- [x] Capture full conversation transcript
+  - [x] Extract/capture AI's spoken responses from audio output (via `outputTranscription`)
+  - [x] Insert into `messages` table with role and timestamp
+- [x] Extend `GeminiService` to load/inject previous messages
+  - [x] Add context injection in `sendSystemPrompt()` method
+  - [x] Query SQLite for previous messages via `MemoryService`
+  - [x] Format previous messages for Gemini context injection (via `formatHistoryForContext()`)
+  - [x] Include context window size limits (last 20 messages via `getRecentContext()`)
 
 ### 1.2 Semantic Search & Retrieval
 - [ ] Integrate vector embeddings for conversation search
@@ -55,10 +47,10 @@ Priority improvements for transitioning from prototype to production-grade agent
 ## 2. Error Handling & Resilience
 
 ### 2.1 Retry Logic
-- [ ] Create `RetryPolicy` interface
-  - [ ] Exponential backoff strategy
-  - [ ] Max retry attempts configuration
-  - [ ] Backoff delay customization
+- [x] Create `RetryPolicy` interface (defined in `types/utils.d.ts`)
+  - [x] Exponential backoff strategy (interface defined)
+  - [x] Max retry attempts configuration (interface defined)
+  - [x] Backoff delay customization (interface defined)
 - [ ] Wrap tool execution with retry wrapper
   - [ ] Create `withRetry()` utility function
   - [ ] Apply to all tool invocations in `GeminiService.handleToolCalls()`
@@ -72,7 +64,7 @@ Priority improvements for transitioning from prototype to production-grade agent
   ```
 
 ### 2.2 Timeout Handling
-- [ ] Create `TimeoutError` exception class
+- [x] Create `TimeoutConfig` interface (defined in `types/utils.d.ts`)
 - [ ] Add timeout wrapper for tool execution
   - [ ] Default timeout: 30 seconds per tool
   - [ ] Configurable per tool via tool metadata
@@ -81,8 +73,8 @@ Priority improvements for transitioning from prototype to production-grade agent
 - [ ] Add timeout configuration to `config.ts`
 
 ### 2.3 Error Recovery
-- [ ] Implement tool execution error catching in `handleToolCalls()`
-  - [ ] Log detailed error information
+- [x] Implement tool execution error catching in `handleToolCalls()` (basic try/catch in place)
+  - [x] Log detailed error information
   - [ ] Notify Gemini of failure with error context
   - [ ] Provide user-friendly error messages
 - [ ] Add session recovery on crash
@@ -105,10 +97,10 @@ Priority improvements for transitioning from prototype to production-grade agent
 ## 3. Hot Reload
 
 ### 3.1 Fix Cache Busting
-- [ ] Investigate and fix query parameter cache busting in `ToolManager.loadTools()`
-  - [ ] Current: `file://${modulePath}?update=${Date.now()}`
-  - [ ] May not work with ES modules; test alternatives
-  - [ ] Consider using `delete require.cache[modulePath]`
+- [x] Investigate and fix query parameter cache busting in `ToolManager.loadTools()`
+  - [x] Current: `file://${modulePath}?update=${Date.now()}`
+  - [x] Working with ES modules
+  - [ ] Test alternatives if issues arise
 
 ### 3.2 Tool Validation
 - [ ] Create `validateTool()` function
@@ -119,12 +111,13 @@ Priority improvements for transitioning from prototype to production-grade agent
   - [ ] Log warnings for invalid tools instead of crashing
 
 ### 3.3 Safe Reloading
+- [x] Watch for file changes (chokidar watcher implemented)
 - [ ] Prevent tool reloading mid-execution
   - [ ] Flag when a tool is currently executing
   - [ ] Queue reload requests
-- [ ] Implement graceful session reconnection
-  - [ ] Close old session before reload
-  - [ ] Create new session with updated tools
+- [x] Implement graceful session reconnection (basic reload in place)
+  - [x] Close old session before reload
+  - [x] Create new session with updated tools
   - [ ] Notify user: "Tools updated, session restarted"
 
 ### 3.4 Development CLI Tools
@@ -241,15 +234,15 @@ Priority improvements for transitioning from prototype to production-grade agent
   - [x] Define `TimeoutConfig` interface
   - [x] Define `ErrorHandlingConfig` interface
 
-### 5.6 Generics & Interfaces (In Progress)
+### 5.6 Generics & Interfaces
 - [ ] Create generic types for common patterns
-  - [ ] Use `Result<T>` type for tool execution responses
+  - [ ] Use `Result<T>` type for tool execution responses (interface defined, needs implementation)
   - [ ] Create `AsyncFunction<Args, Returns>` for tool execution
-- [ ] Define clear interfaces
-  - [ ] Review `CyraTool` interface in `types/index.d.ts`
+- [x] Define clear interfaces
+  - [x] Review `CyraTool` interface in `types/index.d.ts`
   - [ ] Create `ServiceInterface` base for service classes
 - [ ] Update tool files to use `Result<T>` pattern
-  - [ ] Update `execute.ts` to return `Result<string>`
+  - [ ] Update `execute.ts` to return `Result<string>` (currently returns `{ output } | { error }`)
   - [ ] Update `file_operations.ts` to return `Result<string>`
   - [ ] Update `inspect_environment.ts` to return `Result<string>`
   - [ ] Update `read_repository.ts` to return `Result<string>`
