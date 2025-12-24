@@ -49,6 +49,42 @@ const customRule: any = {
 	}
 };
 
+const unnecesaryCurlyRule: any = {
+	meta: {
+		type: 'suggestion',
+		docs: {
+			description: 'Remove unnecessary curly braces for single-statement blocks',
+			recommended: true
+		},
+		fixable: 'code',
+		messages: {
+			unnecessaryBraces:
+				'Unnecessary curly braces for single-statement block. Remove them.'
+		}
+	},
+	create: (context: any) => {
+		return {
+			'IfStatement:exit': checkSingleStatement,
+			'ForStatement:exit': checkSingleStatement,
+			'ForInStatement:exit': checkSingleStatement,
+			'ForOfStatement:exit': checkSingleStatement,
+			'WhileStatement:exit': checkSingleStatement,
+			'DoWhileStatement:exit': checkSingleStatement
+		};
+
+		function checkSingleStatement(node: any) {
+			const body = node.consequent || node.body;
+			// Check if body is a block with a single statement
+			if (body?.type === 'BlockStatement' && body.body?.length === 1) {
+				context.report({
+					node: body,
+					messageId: 'unnecessaryBraces'
+				});
+			}
+		}
+	}
+};
+
 const config: Linter.Config[] = [
 	{
 		ignores: ['dist', 'node_modules', '*.js', '**/*.js']
@@ -71,7 +107,8 @@ const config: Linter.Config[] = [
 			'@typescript-eslint': tsPlugin as any,
 			custom: {
 				rules: {
-					'semicolon-after-control': customRule
+					'semicolon-after-control': customRule,
+					'no-unnecessary-braces': unnecesaryCurlyRule
 				}
 			}
 		},
@@ -86,7 +123,8 @@ const config: Linter.Config[] = [
 			quotes: ['error', 'single'],
 			indent: ['error', 'tab'],
 			'comma-dangle': ['error', 'never'],
-			curly: ['error', 'multi'],
+			curly: 'off',
+			'custom/no-unnecessary-braces': 'error',
 			'no-trailing-spaces': 'error',
 			'custom/semicolon-after-control': 'error',
 			'func-style': ['error', 'expression']
