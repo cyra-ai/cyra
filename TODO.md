@@ -37,10 +37,18 @@ Priority improvements for transitioning from prototype to production-grade agent
   - [ ] Include in system prompt for context
 
 ### 1.3 Memory Types
-- [ ] Implement short-term memory (current session)
-- [ ] Implement long-term memory (persistent storage)
-- [ ] Add memory summarization for large conversations
-  - [ ] Summarize old messages when context window exceeds limit
+- [x] Implement short-term memory (current session)
+  - [x] `getShortTermMemory()` method in MemoryService
+  - [x] Added `memory_type` column to database schema
+- [x] Implement long-term memory (persistent storage)
+  - [x] `getLongTermMemory()` method in MemoryService
+  - [x] `moveToLongTermMemory()` for archiving old messages
+  - [x] `archiveToLongTermMemory()` auto-archive functionality
+- [x] Add memory summarization for large conversations
+  - [x] `summarizeMessages()` method to create summaries
+  - [x] `getSummariesForRange()` to retrieve summaries
+  - [x] Message summary storage in `message_summaries` table
+  - [x] Auto-archive when context window exceeds threshold (configurable)
 
 ---
 

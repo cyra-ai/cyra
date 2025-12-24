@@ -8,6 +8,16 @@ export interface ConversationMessage {
 	content: string;
 	timestamp: string;
 	metadata?: Record<string, unknown>;
+	memory_type?: 'short-term' | 'long-term';
+	is_summarized?: number;
+}
+
+export interface MessageSummary {
+	id: number;
+	start_message_id: number;
+	end_message_id: number;
+	summary: string;
+	timestamp: string;
 }
 
 export class DatabaseService {
@@ -45,18 +55,20 @@ export class DatabaseService {
 	public addMessage(
 		role: 'user' | 'assistant' | 'system' | 'thought',
 		content: string,
-		metadata?: Record<string, unknown>
+		metadata?: Record<string, unknown>,
+		memory_type: 'short-term' | 'long-term' = 'short-term'
 	): ConversationMessage {
 		const timestamp = new Date().toISOString();
 		const stmt = this.db.prepare(`
-      INSERT INTO messages (role, content, timestamp, metadata)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO messages (role, content, timestamp, metadata, memory_type)
+      VALUES (?, ?, ?, ?, ?)
     `);
 		const info = stmt.run(
 			role,
 			content,
 			timestamp,
-			metadata ? JSON.stringify(metadata) : null
+			metadata ? JSON.stringify(metadata) : null,
+			memory_type
 		);
 
 		return {
@@ -64,7 +76,8 @@ export class DatabaseService {
 			role,
 			content,
 			timestamp,
-			metadata
+			metadata,
+			memory_type
 		};
 	};
 
@@ -123,6 +136,88 @@ export class DatabaseService {
 		const stmt = this.db.prepare('SELECT COUNT(*) as count FROM messages');
 		const result = stmt.get() as { count: number };
 		return result.count;
+	};
+
+	/**
+	 * Get messages by memory type
+	 */
+	public getMessagesByMemoryType(
+		memory_type: 'short-term' | 'long-term'
+	): ConversationMessage[] {
+		const stmt = this.db.prepare(`
+      SELECT id, role, content, timestamp, metadata, memory_type, is_summarized
+      FROM messages
+      WHERE memory_type = ?
+      ORDER BY timestamp ASC
+    `);
+		const messages = stmt.all(memory_type).map(this.parseMessage);
+		return this.mergeConsecutiveMessages(messages);
+	};
+
+	/**
+	 * Move messages to long-term memory
+	 */
+	public moveToLongTermMemory(messageIds: number[]): void {
+		const placeholders = messageIds.map(() => '?').join(',');
+		const stmt = this.db.prepare(`
+      UPDATE messages
+      SET memory_type = 'long-term'
+      WHERE id IN (${placeholders})
+    `);
+		stmt.run(...messageIds);
+	};
+
+	/**
+	 * Add a message summary
+	 */
+	public addSummary(
+		start_message_id: number,
+		end_message_id: number,
+		summary: string
+	): MessageSummary {
+		const timestamp = new Date().toISOString();
+		const stmt = this.db.prepare(`
+      INSERT INTO message_summaries (start_message_id, end_message_id, summary, timestamp)
+      VALUES (?, ?, ?, ?)
+    `);
+		const info = stmt.run(
+			start_message_id,
+			end_message_id,
+			summary,
+			timestamp
+		);
+
+		// Mark messages as summarized
+		const updateStmt = this.db.prepare(`
+      UPDATE messages
+      SET is_summarized = 1
+      WHERE id >= ? AND id <= ?
+    `);
+		updateStmt.run(start_message_id, end_message_id);
+
+		return {
+			id: info.lastInsertRowid as number,
+			start_message_id,
+			end_message_id,
+			summary,
+			timestamp
+		};
+	};
+
+	/**
+	 * Get summaries in a message range
+	 */
+	public getSummariesInRange(
+		startId: number,
+		endId: number
+	): MessageSummary[] {
+		const stmt = this.db.prepare(`
+      SELECT id, start_message_id, end_message_id, summary, timestamp
+      FROM message_summaries
+      WHERE start_message_id >= ? AND end_message_id <= ?
+      ORDER BY timestamp DESC
+    `);
+		return stmt.all(startId, endId) as MessageSummary[];
 	};
 
 	/**

@@ -1,13 +1,18 @@
 import {
 	DatabaseService,
-	type ConversationMessage
+	type ConversationMessage,
+	type MessageSummary
 } from './DatabaseService.ts';
 
 export class MemoryService {
 	private db: DatabaseService;
+	private contextWindowSize: number = 20; // Max messages to inject for context
+	private summarizationThreshold: number = 100; // Summarize after N messages
 
-	constructor() {
+	constructor(contextWindowSize: number = 20, summarizationThreshold: number = 100) {
 		this.db = new DatabaseService();
+		this.contextWindowSize = contextWindowSize;
+		this.summarizationThreshold = summarizationThreshold;
 	};
 
 	/**
@@ -46,23 +51,6 @@ export class MemoryService {
 	};
 
 	/**
-	 * Format conversation history for Gemini context injection
-	 */
-	public formatHistoryForContext(): string {
-		const messages = this.db.getAllMessages();
-		if (messages.length === 0) return '';
-
-		const formatted = messages
-			.map((msg) => {
-				const role = msg.role === 'thought' ? 'internal_thought' : msg.role;
-				return `[${role.toUpperCase()}]\n${msg.content}`;
-			})
-			.join('\n\n');
-
-		return `## Conversation History\n\n${formatted}`;
-	};
-
-	/**
 	 * Get statistics about the conversation
 	 */
 	public getStats(): {
@@ -85,5 +73,95 @@ export class MemoryService {
 	 */
 	public close(): void {
 		this.db.close();
+	};
+
+	/**
+	 * Get short-term memory (current session)
+	 */
+	public getShortTermMemory(): ConversationMessage[] {
+		return this.db.getMessagesByMemoryType('short-term');
+	};
+
+	/**
+	 * Get long-term memory (persistent storage)
+	 */
+	public getLongTermMemory(): ConversationMessage[] {
+		return this.db.getMessagesByMemoryType('long-term');
+	};
+
+	/**
+	 * Archive old messages to long-term memory when context window is exceeded
+	 * Automatically called when message count exceeds threshold
+	 */
+	public archiveToLongTermMemory(): void {
+		const totalMessages = this.db.getMessageCount();
+
+		if (totalMessages > this.summarizationThreshold) {
+			// Get messages beyond context window that haven't been archived
+			const allMessages = this.db.getAllMessages();
+			const archiveThreshold = allMessages.length - this.contextWindowSize;
+
+			if (archiveThreshold > 0) {
+				const messagesToArchive = allMessages
+					.slice(0, archiveThreshold)
+					.map((m) => m.id);
+				this.db.moveToLongTermMemory(messagesToArchive);
+			};
+		};
+	};
+
+	/**
+	 * Add a summary of message range when context window exceeds limit
+	 * Called automatically before archiving
+	 */
+	public async summarizeMessages(
+		startId: number,
+		endId: number,
+		summaryText: string
+	): Promise<MessageSummary> {
+		return this.db.addSummary(startId, endId, summaryText);
+	};
+
+	/**
+	 * Get all summaries in a message range
+	 */
+	public getSummariesForRange(startId: number, endId: number): MessageSummary[] {
+		return this.db.getSummariesInRange(startId, endId);
+	};
+
+	/**
+	 * Format conversation history for Gemini context injection
+	 * Intelligently includes recent messages and summaries of archived content
+	 */
+	public formatHistoryForContext(): string {
+		const recentMessages = this.getRecentContext(this.contextWindowSize);
+		const longTermMessages = this.getLongTermMemory();
+
+		let formatted = '';
+
+		// Add long-term memory summaries if they exist
+		if (longTermMessages.length > 0) {
+			const summaries = this.getSummariesForRange(
+				longTermMessages[0].id,
+				longTermMessages[longTermMessages.length - 1].id
+			);
+
+			if (summaries.length > 0) {
+				formatted += '## Long-term Memory (Summaries)\n\n';
+				for (const summary of summaries)
+					formatted += `[Summary of messages ${summary.start_message_id}-${summary.end_message_id}]\n${summary.summary}\n\n`;
+			};
+		};
+
+		// Add recent short-term messages
+		if (recentMessages.length > 0) {
+			formatted += '## Recent Conversation\n\n';
+			for (const msg of recentMessages) {
+				const role = msg.role === 'thought' ? 'internal_thought' : msg.role;
+				formatted += `[${role.toUpperCase()}]\n${msg.content}\n\n`;
+			};
+		};
+
+		return formatted;
 	};
 };
