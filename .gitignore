@@ -5,4 +5,5 @@ dist/
 .env
 .env.local
 tmp/
-db/conversation.db
+db/*
+!db/schema.sql
