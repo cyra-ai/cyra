@@ -76,7 +76,8 @@ export class DatabaseService {
       SELECT id, role, content, timestamp, metadata FROM messages
       ORDER BY timestamp ASC
     `);
-		return stmt.all().map(this.parseMessage);
+		const messages = stmt.all().map(this.parseMessage);
+		return this.mergeConsecutiveMessages(messages);
 	};
 
 	/**
@@ -88,7 +89,8 @@ export class DatabaseService {
       ORDER BY timestamp DESC
       LIMIT ?
     `);
-		return stmt.all(limit).reverse().map(this.parseMessage);
+		const messages = stmt.all(limit).reverse().map(this.parseMessage);
+		return this.mergeConsecutiveMessages(messages);
 	};
 
 	/**
@@ -102,7 +104,8 @@ export class DatabaseService {
       WHERE role = ?
       ORDER BY timestamp ASC
     `);
-		return stmt.all(role).map(this.parseMessage);
+		const messages = stmt.all(role).map(this.parseMessage);
+		return this.mergeConsecutiveMessages(messages);
 	};
 
 	/**
@@ -135,5 +138,43 @@ export class DatabaseService {
 			...msg,
 			metadata: msg.metadata ? JSON.parse(msg.metadata) : undefined
 		};
+	};
+
+	/**
+	 * Merge consecutive messages from the same role within a time threshold
+	 * @param messages Array of messages to merge
+	 * @param timeThresholdMs Merge messages within this many milliseconds (default: 30000 = 30 seconds)
+	 */
+	private mergeConsecutiveMessages(
+		messages: ConversationMessage[],
+		timeThresholdMs: number = 30000
+	): ConversationMessage[] {
+		if (messages.length === 0) return messages;
+
+		const merged: ConversationMessage[] = [];
+		let currentGroup = messages[0];
+
+		for (let i = 1; i < messages.length; i++) {
+			const current = messages[i];
+			const timeDiff = new Date(current.timestamp).getTime() -
+				new Date(currentGroup.timestamp).getTime();
+
+			// If same role and within time threshold, merge
+			if (current.role === currentGroup.role && timeDiff <= timeThresholdMs)
+				currentGroup = {
+					...currentGroup,
+					content: `${currentGroup.content}\n\n${current.content}`
+				};
+			else {
+				// Different role or time threshold exceeded, save and start new group
+				merged.push(currentGroup);
+				currentGroup = current;
+			};
+		};
+
+		// Don't forget the last group
+		merged.push(currentGroup);
+
+		return merged;
 	};
 }
