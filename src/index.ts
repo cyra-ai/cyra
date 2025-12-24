@@ -57,9 +57,9 @@ process.stdin.on('keypress', (str, key) => {
 		// Show conversation history
 		const history = geminiService.getMemoryService().getConversationHistory();
 		console.log('\n=== Conversation History ===');
-		if (history.length === 0) {
+		if (history.length === 0)
 			console.log('No messages yet.');
-		} else {
+		else
 			history.forEach((msg) => {
 				const role = msg.role.toUpperCase();
 				console.log(`[${role}] ${msg.timestamp}`);
@@ -67,7 +67,6 @@ process.stdin.on('keypress', (str, key) => {
 					`  ${msg.content.substring(0, 100)}${msg.content.length > 100 ? '...' : ''}\n`
 				);
 			});
-		}
 		console.log('=============================\n');
 	} else if (key.name === 's') {
 		// Show statistics
@@ -84,5 +83,5 @@ process.stdin.on('keypress', (str, key) => {
 		audioService.stop();
 		toolManager.stopWatching();
 		process.exit();
-	}
+	};
 });

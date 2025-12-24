@@ -47,13 +47,13 @@ export class AudioService extends EventEmitter {
 
 	public start(): void {
 		this.micInstance.start();
-	}
+	};
 
 	public stop(): void {
 		this.micInstance.stop();
-	}
+	};
 
 	public play(data: Buffer): void {
 		this.speaker.write(data);
-	}
+	};
 }

@@ -36,8 +36,8 @@ export class DatabaseService {
 		} catch (err) {
 			console.error('Error initializing database schema:', err);
 			throw err;
-		}
-	}
+		};
+	};
 
 	/**
 	 * Add a message to the persistent conversation
@@ -76,7 +76,7 @@ export class DatabaseService {
       SELECT id, role, content, timestamp, metadata FROM messages
       ORDER BY timestamp ASC
     `);
-		return (stmt.all() as any[]).map(this.parseMessage);
+		return stmt.all().map(this.parseMessage);
 	};
 
 	/**
@@ -88,7 +88,7 @@ export class DatabaseService {
       ORDER BY timestamp DESC
       LIMIT ?
     `);
-		return (stmt.all(limit) as any[]).reverse().map(this.parseMessage);
+		return stmt.all(limit).reverse().map(this.parseMessage);
 	};
 
 	/**
@@ -102,7 +102,7 @@ export class DatabaseService {
       WHERE role = ?
       ORDER BY timestamp ASC
     `);
-		return (stmt.all(role) as any[]).map(this.parseMessage);
+		return stmt.all(role).map(this.parseMessage);
 	};
 
 	/**
@@ -127,12 +127,13 @@ export class DatabaseService {
 	 */
 	public close(): void {
 		this.db.close();
-	}
+	};
 
+	/* eslint-disable @typescript-eslint/no-explicit-any */
 	private parseMessage(msg: any): ConversationMessage {
 		return {
 			...msg,
 			metadata: msg.metadata ? JSON.parse(msg.metadata) : undefined
 		};
-	}
+	};
 }

@@ -8,42 +8,42 @@ export class MemoryService {
 
 	constructor() {
 		this.db = new DatabaseService();
-	}
+	};
 
 	/**
 	 * Add a user message to persistent storage
 	 */
 	public addUserMessage(content: string): ConversationMessage {
 		return this.db.addMessage('user', content);
-	}
+	};
 
 	/**
 	 * Add an assistant message to persistent storage
 	 */
 	public addAssistantMessage(content: string): ConversationMessage {
 		return this.db.addMessage('assistant', content);
-	}
+	};
 
 	/**
 	 * Add an AI thought/reasoning to persistent storage
 	 */
 	public addThought(content: string): ConversationMessage {
 		return this.db.addMessage('thought', content);
-	}
+	};
 
 	/**
 	 * Get the full conversation history for context injection
 	 */
 	public getConversationHistory(): ConversationMessage[] {
 		return this.db.getAllMessages();
-	}
+	};
 
 	/**
 	 * Get recent messages for context (limit to last N)
 	 */
 	public getRecentContext(limit: number = 20): ConversationMessage[] {
 		return this.db.getRecentMessages(limit);
-	}
+	};
 
 	/**
 	 * Format conversation history for Gemini context injection
@@ -85,5 +85,5 @@ export class MemoryService {
 	 */
 	public close(): void {
 		this.db.close();
-	}
+	};
 }

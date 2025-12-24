@@ -43,7 +43,7 @@ export class GeminiService {
 
 	public getMemoryService(): MemoryService {
 		return this.memoryService;
-	}
+	};
 
 	public async connect(onAudioData: AudioDataCallback): Promise<void> {
 		if (this.session) await this.disconnect();
@@ -105,7 +105,7 @@ export class GeminiService {
 			'inputTranscription' in message.serverContent &&
 			message.serverContent.inputTranscription
 		) {
-			const transcript = (message.serverContent.inputTranscription as any).text;
+			const transcript = message.serverContent.inputTranscription.text;
 			if (transcript) {
 				this.memoryService.addUserMessage(transcript);
 				console.log(`User: ${transcript}`);
@@ -118,7 +118,7 @@ export class GeminiService {
 			'outputTranscription' in message.serverContent &&
 			message.serverContent.outputTranscription
 		) {
-			const transcript = (message.serverContent.outputTranscription as any).text;
+			const transcript = message.serverContent.outputTranscription.text;
 			if (transcript) {
 				this.memoryService.addAssistantMessage(transcript);
 				console.log(`Assistant: ${transcript}`);
@@ -178,7 +178,7 @@ export class GeminiService {
 				});
 			} catch (err) {
 				console.error(`Error executing tool ${tool.name}:`, err);
-			}
+			};
 		};
 	};
 
@@ -225,7 +225,7 @@ export class GeminiService {
 				);
 		} catch {
 			console.log('No system prompt found or error loading it.');
-		}
+		};
 	};
 
 	private logThought(role: ConversationEntry['role'], content: string): void {

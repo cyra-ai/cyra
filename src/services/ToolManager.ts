@@ -36,21 +36,21 @@ export class ToolManager {
 						};
 					} catch (error) {
 						console.error(`Error loading tool ${file}:`, error);
-					}
+					};
 				};
 		} catch (error) {
 			console.error('Error reading functions directory:', error);
-		}
+		};
 		console.log(`Total tools loaded: ${this.tools.length}`);
 	};
 
 	public getTools(): CyraTool[] {
 		return this.tools;
-	}
+	};
 
 	public getTool(name: string): CyraTool | undefined {
 		return this.tools.find((t) => t.name === name);
-	}
+	};
 
 	public watch(onReload: () => void): void {
 		this.onReloadCallback = onReload;
@@ -79,5 +79,5 @@ export class ToolManager {
 
 	public stopWatching(): void {
 		if (this.watcher) this.watcher.close();
-	}
+	};
 }

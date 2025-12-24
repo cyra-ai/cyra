@@ -29,23 +29,11 @@ const customRule: any = {
 		}) => void;
 	}) => {
 		const sourceCode = context.sourceCode;
-		return {
-			'IfStatement:exit': checkControlStructure,
-			'ForStatement:exit': checkControlStructure,
-			'ForInStatement:exit': checkControlStructure,
-			'ForOfStatement:exit': checkControlStructure,
-			'WhileStatement:exit': checkControlStructure,
-			'DoWhileStatement:exit': checkControlStructure,
-			'TryStatement:exit': checkControlStructure,
-			'SwitchStatement:exit': checkControlStructure,
-			'FunctionDeclaration:exit': checkFunctionDeclaration,
-			'MethodDefinition:exit': checkMethodDefinition
-		};
 
-		function checkControlStructure(node: any) {
+		const checkControlStructure = (node: any) => {
 			const body = node.consequent || node.body;
-			// Only check if the body is a BlockStatement with multiple statements
-			if (body?.type === 'BlockStatement' && body.body?.length > 1) {
+			// Check if the body is a BlockStatement (single or multiple statements)
+			if (body?.type === 'BlockStatement' && body.body?.length >= 1) {
 				const tokens = sourceCode.getTokens(node);
 				const lastToken = tokens[tokens.length - 1];
 
@@ -61,12 +49,31 @@ const customRule: any = {
 					}
 				}
 			}
-		}
+		};;
 
-		function checkFunctionDeclaration(node: any) {
+		const checkTryStatement = (node: any) => {
+			// TryStatement has block, handler, and finalizer properties
+			// Check the last child (could be finalizer or handler)
+			const tokens = sourceCode.getTokens(node);
+			const lastToken = tokens[tokens.length - 1];
+
+			if (lastToken && lastToken.value === '}') {
+				const nextToken = sourceCode.getTokenAfter(lastToken);
+				if (!nextToken || nextToken.value !== ';') {
+					context.report({
+						node,
+						messageId: 'missingSemicolon',
+						fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
+							fixer.insertTextAfter(lastToken, ';')
+					});
+				}
+			}
+		};
+
+		const checkFunctionDeclaration = (node: any) => {
 			const body = node.body;
-			// Only check if the body is a BlockStatement with multiple statements
-			if (body?.type === 'BlockStatement' && body.body?.length > 1) {
+			// Check if the body is a BlockStatement (single or multiple statements)
+			if (body?.type === 'BlockStatement' && body.body?.length >= 1) {
 				const tokens = sourceCode.getTokens(body);
 				const lastToken = tokens[tokens.length - 1];
 
@@ -82,12 +89,12 @@ const customRule: any = {
 					}
 				}
 			}
-		}
+		};
 
-		function checkMethodDefinition(node: any) {
+		const checkMethodDefinition = (node: any) => {
 			const body = node.value?.body;
-			// Only check if the body is a BlockStatement with multiple statements
-			if (body?.type === 'BlockStatement' && body.body?.length > 1) {
+			// Check if the body is a BlockStatement (single or multiple statements)
+			if (body?.type === 'BlockStatement' && body.body?.length >= 1) {
 				const tokens = sourceCode.getTokens(body);
 				const lastToken = tokens[tokens.length - 1];
 
@@ -103,7 +110,20 @@ const customRule: any = {
 					}
 				}
 			}
-		}
+		};;
+
+		return {
+			'IfStatement:exit': checkControlStructure,
+			'ForStatement:exit': checkControlStructure,
+			'ForInStatement:exit': checkControlStructure,
+			'ForOfStatement:exit': checkControlStructure,
+			'WhileStatement:exit': checkControlStructure,
+			'DoWhileStatement:exit': checkControlStructure,
+			'TryStatement:exit': checkTryStatement,
+			'SwitchStatement:exit': checkControlStructure,
+			'FunctionDeclaration:exit': checkFunctionDeclaration,
+			'MethodDefinition:exit': checkMethodDefinition
+		};
 	}
 };
 
@@ -121,16 +141,7 @@ const unnecesaryCurlyRule: any = {
 		}
 	},
 	create: (context: any) => {
-		return {
-			'IfStatement:exit': checkSingleStatement,
-			'ForStatement:exit': checkSingleStatement,
-			'ForInStatement:exit': checkSingleStatement,
-			'ForOfStatement:exit': checkSingleStatement,
-			'WhileStatement:exit': checkSingleStatement,
-			'DoWhileStatement:exit': checkSingleStatement
-		};
-
-		function checkSingleStatement(node: any) {
+		const checkSingleStatement = (node: any) => {
 			const body = node.consequent || node.body;
 			// Check if body is a block with a single statement
 			if (body?.type === 'BlockStatement' && body.body?.length === 1) {
@@ -139,7 +150,16 @@ const unnecesaryCurlyRule: any = {
 					messageId: 'unnecessaryBraces'
 				});
 			}
-		}
+		};
+
+		return {
+			'IfStatement:exit': checkSingleStatement,
+			'ForStatement:exit': checkSingleStatement,
+			'ForInStatement:exit': checkSingleStatement,
+			'ForOfStatement:exit': checkSingleStatement,
+			'WhileStatement:exit': checkSingleStatement,
+			'DoWhileStatement:exit': checkSingleStatement
+		};
 	}
 };
 
