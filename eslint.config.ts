@@ -49,7 +49,29 @@ const customRule: any = {
 					}
 				}
 			}
-		};;
+
+		// For IfStatements, also check the else block (alternate)
+		if (node.type === 'IfStatement' && node.alternate) {
+			const alternate = node.alternate;
+			// Only check if it's a BlockStatement (else { ... }), not else if
+			if (alternate?.type === 'BlockStatement' && alternate.body?.length >= 1) {
+				const tokens = sourceCode.getTokens(alternate);
+				const lastToken = tokens[tokens.length - 1];
+
+				if (lastToken && lastToken.value === '}') {
+					const nextToken = sourceCode.getTokenAfter(lastToken);
+					if (!nextToken || nextToken.value !== ';') {
+						context.report({
+							node: alternate,
+							messageId: 'missingSemicolon',
+							fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
+								fixer.insertTextAfter(lastToken, ';')
+						});
+					}
+				}
+			}
+		}
+	};
 
 		const checkTryStatement = (node: any) => {
 			// TryStatement has block, handler, and finalizer properties
