@@ -81,7 +81,7 @@ const tool: CyraTool = {
 				return {
 					error: `Unknown operation: ${operation}. Use "create", "read", "update", or "delete".`
 				};
-			};
+			}
 		} catch (err) {
 			if ((err as NodeJS.ErrnoException).code === 'ENOENT')
 				return {

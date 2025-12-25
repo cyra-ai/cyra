@@ -12,7 +12,10 @@ export class MemoryService {
 	private assistantStreamTimer: NodeJS.Timeout | null = null;
 	private readonly STREAM_FLUSH_DELAY = 1000; // Flush buffer after 1 second of inactivity
 
-	constructor(contextWindowSize: number = 20, summarizationThreshold: number = 100) {
+	constructor(
+		contextWindowSize: number = 20,
+		summarizationThreshold: number = 100
+	) {
 		this.db = new DatabaseService();
 		this.contextWindowSize = contextWindowSize;
 		this.summarizationThreshold = summarizationThreshold;

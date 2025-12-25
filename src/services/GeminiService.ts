@@ -42,7 +42,6 @@ export class GeminiService {
 			this.sendJobFailure(job);
 		});
 
-
 		if (!fs.existsSync(path.resolve(process.cwd(), config.system.tmpDir)))
 			fs.mkdirSync(path.resolve(process.cwd(), config.system.tmpDir), {
 				recursive: true
@@ -213,7 +212,8 @@ export class GeminiService {
 
 	private async buildSystemInstruction(): Promise<string> {
 		const systemPromptPath = path.resolve(process.cwd(), 'SystemPrompt.md');
-		let basePrompt = 'You are Cyra, an advanced AI assistant designed to help developers.';
+		let basePrompt =
+			'You are Cyra, an advanced AI assistant designed to help developers.';
 
 		try {
 			basePrompt = await fsp.readFile(systemPromptPath, 'utf-8');
@@ -246,8 +246,7 @@ export class GeminiService {
 			.replace('{{cli_tools}}', cliTools);
 
 		// Append conversation history if there is any
-		if (conversationHistory)
-			systemInstruction += '\n\n' + conversationHistory;
+		if (conversationHistory) systemInstruction += '\n\n' + conversationHistory;
 
 		return systemInstruction;
 	};
@@ -311,4 +310,3 @@ export class GeminiService {
 		return this.jobQueue;
 	};
 };
-

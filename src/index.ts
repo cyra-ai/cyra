@@ -56,8 +56,7 @@ process.stdin.on('keypress', (str, key) => {
 		// Show conversation history
 		const history = geminiService.getMemoryService().getConversationHistory();
 		console.log('\n=== Conversation History ===');
-		if (history.length === 0)
-			console.log('No messages yet.');
+		if (history.length === 0) console.log('No messages yet.');
 		else
 			for (const msg of history) {
 				const role = msg.role.toUpperCase();

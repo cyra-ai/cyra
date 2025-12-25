@@ -57,7 +57,9 @@ const tool: CyraTool = {
 						description: description || 'Command executed'
 					};
 				} catch (err) {
-					throw new Error(`Command failed: ${err instanceof Error ? err.message : String(err)}`);
+					throw new Error(
+						`Command failed: ${err instanceof Error ? err.message : String(err)}`
+					);
 				};
 			}
 		};

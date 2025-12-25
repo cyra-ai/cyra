@@ -64,9 +64,12 @@ const tool: CyraTool = {
 
 			// Try using compgen first (most efficient)
 			try {
-				const { stdout } = await execAsync('compgen -c 2>/dev/null | head -n ' + limit, {
-					shell: '/bin/bash'
-				});
+				const { stdout } = await execAsync(
+					'compgen -c 2>/dev/null | head -n ' + limit,
+					{
+						shell: '/bin/bash'
+					}
+				);
 				availableCommands = stdout
 					.split('\n')
 					.filter((cmd) => cmd.trim().length > 0)

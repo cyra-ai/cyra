@@ -27,8 +27,7 @@ export class JobQueue extends EventEmitter {
 	};
 
 	static getInstance(): JobQueue {
-		if (!JobQueue.instance)
-			JobQueue.instance = new JobQueue();
+		if (!JobQueue.instance) JobQueue.instance = new JobQueue();
 		return JobQueue.instance;
 	};
 

@@ -180,12 +180,7 @@ export class DatabaseService {
       INSERT INTO message_summaries (start_message_id, end_message_id, summary, timestamp)
       VALUES (?, ?, ?, ?)
     `);
-		const info = stmt.run(
-			start_message_id,
-			end_message_id,
-			summary,
-			timestamp
-		);
+		const info = stmt.run(start_message_id, end_message_id, summary, timestamp);
 
 		// Mark messages as summarized
 		const updateStmt = this.db.prepare(`
@@ -207,10 +202,7 @@ export class DatabaseService {
 	/**
 	 * Get summaries in a message range
 	 */
-	public getSummariesInRange(
-		startId: number,
-		endId: number
-	): MessageSummary[] {
+	public getSummariesInRange(startId: number, endId: number): MessageSummary[] {
 		const stmt = this.db.prepare(`
       SELECT id, start_message_id, end_message_id, summary, timestamp
       FROM message_summaries
@@ -251,16 +243,19 @@ export class DatabaseService {
 
 		for (let i = 1; i < messages.length; i++) {
 			const current = messages[i];
-			const timeDiff = new Date(current.timestamp).getTime() -
+			const timeDiff =
+				new Date(current.timestamp).getTime() -
 				new Date(currentGroup.timestamp).getTime();
 
 			// If same role and within time threshold, merge
 			if (current.role === currentGroup.role && timeDiff <= timeThresholdMs)
 				currentGroup = {
 					...currentGroup,
-					content: currentGroup.content.trim().length > 0 && current.content.trim().length > 0
-						? `${currentGroup.content} ${current.content}`
-						: `${currentGroup.content}${current.content}`
+					content:
+						currentGroup.content.trim().length > 0 &&
+						current.content.trim().length > 0
+							? `${currentGroup.content} ${current.content}`
+							: `${currentGroup.content}${current.content}`
 				};
 			else {
 				// Different role or time threshold exceeded, save and start new group

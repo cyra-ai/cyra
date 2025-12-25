@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import mic from 'mic';
 import type { MicInstance } from 'mic';
 import Speaker from 'speaker';

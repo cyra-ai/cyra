@@ -1,0 +1,12 @@
+[
+	{
+		"key": "ctrl+s",
+		"command": "runCommands",
+		"args": [
+			"editor.action.formatDocument",
+			"eslint.executeAutofix",
+			"workbench.action.files.save"
+		],
+		"when": "editorFocus"
+	}
+]
