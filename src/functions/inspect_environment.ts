@@ -19,39 +19,17 @@ const tool: CyraTool = {
 	parameters: {
 		type: Type.OBJECT,
 		properties: {
-			check_commands: {
-				type: Type.ARRAY,
+			limit: {
+				type: Type.INTEGER,
 				description:
-					'Optional: Specific commands to check availability for (e.g., ["python", "node", "git"]). If not provided, checks common commands.',
-				items: {
-					type: Type.STRING
-				}
+					'Optional: Maximum number of commands to return (default: 200). Set higher for comprehensive list.',
+				default: 200
 			}
 		}
 	},
 	execute: async (args?: Record<string, unknown>) => {
 		try {
-			const checkCommands = (
-				Array.isArray(args?.check_commands)
-					? args?.check_commands
-					: [
-						'node',
-						'npm',
-						'python',
-						'python3',
-						'git',
-						'docker',
-						'curl',
-						'wget',
-						'grep',
-						'sed',
-						'awk',
-						'jq',
-						'make',
-						'gcc',
-						'java'
-					]
-			) as string[];
+			const limit = typeof args?.limit === 'number' ? args.limit : 200;
 
 			// Get shell info
 			let shellInfo = 'Unknown';
@@ -59,7 +37,6 @@ const tool: CyraTool = {
 				const { stdout } = await execAsync('echo $SHELL');
 				shellInfo = stdout.trim();
 			} catch {
-				// Fallback if SHELL env var is not set
 				shellInfo = 'Unable to determine';
 			};
 
@@ -81,41 +58,46 @@ const tool: CyraTool = {
 				pathDirs = [];
 			};
 
-			// Check availability of specified commands
-			const availableCommands: Record<string, boolean> = {};
-			for (const cmd of checkCommands)
-				try {
-					await execAsync(`command -v ${cmd}`, { shell: '/bin/bash' });
-					availableCommands[cmd] = true;
-				} catch {
-					availableCommands[cmd] = false;
-				};
+			// Dynamically discover all available commands
+			let availableCommands: string[] = [];
+			let commandCount = 0;
 
-			// Get list of all executables in PATH
-			let allExecutables: string[] = [];
+			// Try using compgen first (most efficient)
 			try {
-				const { stdout } = await execAsync('compgen -c', { shell: '/bin/bash' });
-				allExecutables = stdout
+				const { stdout } = await execAsync('compgen -c 2>/dev/null | head -n ' + limit, {
+					shell: '/bin/bash'
+				});
+				availableCommands = stdout
 					.split('\n')
-					.filter((cmd) => cmd.length > 0)
-					.slice(0, 100); // Limit to first 100 to avoid too much output
+					.filter((cmd) => cmd.trim().length > 0)
+					.map((cmd) => cmd.trim());
+				commandCount = availableCommands.length;
 			} catch {
-				// If compgen is not available, try an alternative approach
+				// Fallback: scan PATH directories directly
 				try {
-					const pathCommands: Set<string> = new Set();
-					for (const dir of pathDirs)
+					const pathCommands: Map<string, string> = new Map();
+
+					for (const dir of pathDirs) {
 						try {
-							const { stdout } = await execAsync(`ls -1 ${dir} 2>/dev/null || true`);
+							const { stdout } = await execAsync(`ls -1 "${dir}" 2>/dev/null || true`);
 							stdout.split('\n').forEach((f) => {
-								if (f.length > 0) pathCommands.add(f);
+								const trimmed = f.trim();
+								if (trimmed.length > 0 && !pathCommands.has(trimmed))
+									pathCommands.set(trimmed, dir);
 							});
+
+							// Stop if we've found enough commands
+							if (pathCommands.size >= limit) break;
 						} catch {
 							// Skip directories we can't read
 						};
+					};
 
-					allExecutables = Array.from(pathCommands).slice(0, 100);
+					availableCommands = Array.from(pathCommands.keys()).slice(0, limit);
+					commandCount = availableCommands.length;
 				} catch {
-					allExecutables = [];
+					availableCommands = [];
+					commandCount = 0;
 				};
 			};
 
@@ -131,7 +113,7 @@ const tool: CyraTool = {
 				const { stdout } = await execAsync('node --version');
 				nodeVersion = stdout.trim();
 			} catch {
-				nodeVersion = 'Node.js not available';
+				nodeVersion = 'Not available';
 			};
 
 			// Get npm version if available
@@ -140,26 +122,7 @@ const tool: CyraTool = {
 				const { stdout } = await execAsync('npm --version');
 				npmVersion = stdout.trim();
 			} catch {
-				npmVersion = 'npm not available';
-			};
-
-			// Get globally installed npm CLIs
-			let npmGlobalClis: string[] = [];
-			try {
-				const { stdout } = await execAsync('npm list -g --depth=0 --parseable');
-				npmGlobalClis = stdout
-					.split('\n')
-					.filter((line) => line.length > 0)
-					.map((line) => {
-						// Extract package name from path (last part of the path)
-						const parts = line.split('/');
-						return parts[parts.length - 1] || '';
-					})
-					.filter((pkg) => pkg.length > 0 && !pkg.includes('@'))
-					.slice(0, 50); // Limit to first 50 packages
-			} catch {
-				// npm not available or error occurred
-				npmGlobalClis = [];
+				npmVersion = 'Not available';
 			};
 
 			const output = JSON.stringify(
@@ -172,12 +135,11 @@ const tool: CyraTool = {
 					environmentVariablesCount: envVarCount,
 					pathDirectories: pathDirs.length,
 					availableCommands,
-					availableCommandsList: allExecutables,
-					npmGlobalClis,
+					commandsCount: commandCount,
 					summary: {
-						total: allExecutables.length,
-						npmCliCount: npmGlobalClis.length,
-						description: `${allExecutables.length} commands found in PATH (limited to first 100), ${npmGlobalClis.length} npm global CLIs available`
+						description: `${commandCount} commands available in PATH (limited to ${limit})`,
+						shellDetails: shellInfo,
+						osDetails: osInfo
 					}
 				},
 				null,
