@@ -7,6 +7,7 @@ import type {
 import { config } from '../config.ts';
 import { ToolManager } from './ToolManager.ts';
 import { MemoryService } from './MemoryService.ts';
+import { JobQueue, type JobProgress } from './JobQueue.ts';
 import type {
 	ConversationEntry,
 	AudioDataCallback
@@ -20,6 +21,7 @@ export class GeminiService {
 	private session: Session | null = null;
 	private toolManager: ToolManager;
 	private memoryService: MemoryService;
+	private jobQueue: JobQueue;
 	private thoughtLog: ConversationEntry[] = [];
 	private logFile: string;
 
@@ -27,6 +29,19 @@ export class GeminiService {
 		this.client = new GoogleGenAI({ apiKey: config.google.apiKey });
 		this.toolManager = toolManager;
 		this.memoryService = new MemoryService();
+		this.jobQueue = JobQueue.getInstance();
+
+		// Listen for job events and send updates to user
+		this.jobQueue.on('job:progress', (job) => {
+			this.sendProgressUpdate(job);
+		});
+		this.jobQueue.on('job:completed', (job) => {
+			this.sendJobCompletion(job);
+		});
+		this.jobQueue.on('job:failed', (job) => {
+			this.sendJobFailure(job);
+		});
+
 
 		if (!fs.existsSync(path.resolve(process.cwd(), config.system.tmpDir)))
 			fs.mkdirSync(path.resolve(process.cwd(), config.system.tmpDir), {
@@ -246,4 +261,54 @@ export class GeminiService {
 			.writeFile(this.logFile, JSON.stringify(this.thoughtLog, null, 2))
 			.catch((err) => console.error('Error saving thoughts:', err));
 	};
+
+	/**
+	 * Send progress update to user via audio
+	 */
+	private sendProgressUpdate(job: JobProgress): void {
+		if (!this.session) return;
+
+		const message = `Job ${job.jobId}: ${job.progress}% - ${job.message}`;
+		console.log(`[PROGRESS] ${message}`);
+
+		// Send as text to be read aloud
+		this.session.sendRealtimeInput({ text: message });
+		this.memoryService.addThought(`Job progress: ${message}`);
+	};
+
+	/**
+	 * Send job completion to user
+	 */
+	private sendJobCompletion(job: JobProgress): void {
+		if (!this.session) return;
+
+		const message = `Job ${job.jobId} completed successfully. ${job.message}`;
+		console.log(`[COMPLETED] ${message}`);
+
+		// Send result summary
+		this.session.sendRealtimeInput({ text: message });
+		this.memoryService.addThought(`Job completed: ${message}`);
+	};
+
+	/**
+	 * Send job failure to user
+	 */
+	private sendJobFailure(job: JobProgress): void {
+		if (!this.session) return;
+
+		const message = `Job ${job.jobId} failed: ${job.error}`;
+		console.log(`[FAILED] ${message}`);
+
+		// Send error message
+		this.session.sendRealtimeInput({ text: message });
+		this.memoryService.addThought(`Job failed: ${message}`);
+	};
+
+	/**
+	 * Get job queue instance for tools to use
+	 */
+	public getJobQueue(): JobQueue {
+		return this.jobQueue;
+	};
 };
+
