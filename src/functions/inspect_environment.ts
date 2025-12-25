@@ -80,11 +80,11 @@ const tool: CyraTool = {
 					for (const dir of pathDirs) {
 						try {
 							const { stdout } = await execAsync(`ls -1 "${dir}" 2>/dev/null || true`);
-							stdout.split('\n').forEach((f) => {
+							for (const f of stdout.split('\n')) {
 								const trimmed = f.trim();
 								if (trimmed.length > 0 && !pathCommands.has(trimmed))
 									pathCommands.set(trimmed, dir);
-							});
+							};
 
 							// Stop if we've found enough commands
 							if (pathCommands.size >= limit) break;

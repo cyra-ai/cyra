@@ -31,11 +31,11 @@ const tool: CyraTool = {
 		try {
 			const gitignorePath = path.join(repoPath, '.gitignore');
 			const gitignoreContent = await fs.readFile(gitignorePath, 'utf-8');
-			gitignoreContent.split('\n').forEach((line) => {
+			for (const line of gitignoreContent.split('\n')) {
 				const trimmed = line.trim();
 				if (trimmed && !trimmed.startsWith('#'))
 					ignoredPaths.add(trimmed.replace(/\/$/, ''));
-			});
+			};
 		} catch {
 			// .gitignore doesn't exist, continue
 		};

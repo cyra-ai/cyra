@@ -289,6 +289,45 @@ const unnecesaryCurlyRule: any = {
 	}
 };
 
+const avoidForEachRule: any = {
+	meta: {
+		type: 'suggestion',
+		docs: {
+			description: 'Avoid forEach, use for...of instead when index is not needed',
+			recommended: true
+		},
+		messages: {
+			avoidForEach:
+				'Avoid using forEach. Use for...of loop instead when the index is not needed.'
+		}
+	},
+	create: (context: any) => {
+		return {
+			'CallExpression:exit': (node: any) => {
+				// Check if this is a forEach call
+				if (
+					node.callee?.type === 'MemberExpression' &&
+					node.callee?.property?.name === 'forEach' &&
+					node.arguments?.length > 0
+				) {
+					const callback = node.arguments[0];
+					// Check if callback has only one parameter (not using index/key)
+					if (
+						(callback?.type === 'ArrowFunctionExpression' ||
+							callback?.type === 'FunctionExpression') &&
+						callback?.params?.length === 1
+					) {
+						context.report({
+							node,
+							messageId: 'avoidForEach'
+						});
+					}
+				}
+			}
+		};
+	}
+};
+
 const config: Linter.Config[] = [
 	{
 		ignores: ['dist', 'node_modules', '*.js', '**/*.js']
@@ -312,7 +351,8 @@ const config: Linter.Config[] = [
 			custom: {
 				rules: {
 					'semicolon-after-control': customRule,
-					'no-unnecessary-braces': unnecesaryCurlyRule
+					'no-unnecessary-braces': unnecesaryCurlyRule,
+					'avoid-forEach': avoidForEachRule
 				}
 			}
 		},
@@ -330,6 +370,7 @@ const config: Linter.Config[] = [
 			'comma-dangle': ['error', 'never'],
 			curly: 'off',
 			'custom/no-unnecessary-braces': 'error',
+			'custom/avoid-forEach': 'error',
 			'no-trailing-spaces': 'error',
 			'custom/semicolon-after-control': 'error',
 			'func-style': ['error', 'expression']

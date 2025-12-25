@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import * as readline from 'readline';
 import { AudioService } from './services/AudioService.ts';
 import { ToolManager } from './services/ToolManager.ts';
@@ -60,13 +59,13 @@ process.stdin.on('keypress', (str, key) => {
 		if (history.length === 0)
 			console.log('No messages yet.');
 		else
-			history.forEach((msg) => {
+			for (const msg of history) {
 				const role = msg.role.toUpperCase();
 				console.log(`[${role}] ${msg.timestamp}`);
 				console.log(
 					`  ${msg.content.substring(0, 100)}${msg.content.length > 100 ? '...' : ''}\n`
 				);
-			});
+			};
 		console.log('=============================\n');
 	} else if (key.name === 's') {
 		// Show statistics
