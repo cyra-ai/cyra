@@ -89,9 +89,6 @@ export class GeminiService {
 			console.log(
 				`Loaded conversation: ${stats.userMessages} user messages, ${stats.assistantMessages} assistant messages, ${stats.thoughts} thoughts`
 			);
-		this.session.sendRealtimeInput({
-			text: 'summarize your environment'
-		});
 	};
 
 	public async disconnect(): Promise<void> {
