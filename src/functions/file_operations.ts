@@ -83,7 +83,6 @@ const tool: CyraTool = {
 				};
 			};
 		} catch (err) {
-			// eslint-disable-next-line no-undef
 			if ((err as NodeJS.ErrnoException).code === 'ENOENT')
 				return {
 					error: `Error performing ${operation} operation at ${filePath}: File not found.`

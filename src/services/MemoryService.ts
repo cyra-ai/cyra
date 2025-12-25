@@ -8,6 +8,9 @@ export class MemoryService {
 	private db: DatabaseService;
 	private contextWindowSize: number = 20; // Max messages to inject for context
 	private summarizationThreshold: number = 100; // Summarize after N messages
+	private assistantStreamBuffer: string = ''; // Buffer for streaming assistant messages
+	private assistantStreamTimer: NodeJS.Timeout | null = null;
+	private readonly STREAM_FLUSH_DELAY = 1000; // Flush buffer after 1 second of inactivity
 
 	constructor(contextWindowSize: number = 20, summarizationThreshold: number = 100) {
 		this.db = new DatabaseService();
@@ -24,9 +27,31 @@ export class MemoryService {
 
 	/**
 	 * Add an assistant message to persistent storage
+	 * Uses a buffer to avoid saving individual streaming chunks
 	 */
 	public addAssistantMessage(content: string): ConversationMessage {
-		return this.db.addMessage('assistant', content);
+		// Add to stream buffer
+		this.assistantStreamBuffer += content;
+
+		// Clear existing timer
+		if (this.assistantStreamTimer) clearTimeout(this.assistantStreamTimer);
+
+		// Set new timer to flush after inactivity
+		this.assistantStreamTimer = setTimeout(() => {
+			if (this.assistantStreamBuffer.trim()) {
+				this.db.addMessage('assistant', this.assistantStreamBuffer.trim());
+				this.assistantStreamBuffer = '';
+				this.assistantStreamTimer = null;
+			};
+		}, this.STREAM_FLUSH_DELAY);
+
+		// Return a temporary object (the real save happens on flush)
+		return {
+			id: -1, // Temporary ID
+			role: 'assistant',
+			content: this.assistantStreamBuffer,
+			timestamp: new Date().toISOString()
+		};
 	};
 
 	/**
@@ -40,6 +65,7 @@ export class MemoryService {
 	 * Get the full conversation history for context injection
 	 */
 	public getConversationHistory(): ConversationMessage[] {
+		this.flushAssistantBuffer();
 		return this.db.getAllMessages();
 	};
 
@@ -47,6 +73,7 @@ export class MemoryService {
 	 * Get recent messages for context (limit to last N)
 	 */
 	public getRecentContext(limit: number = 20): ConversationMessage[] {
+		this.flushAssistantBuffer();
 		return this.db.getRecentMessages(limit);
 	};
 
@@ -59,6 +86,7 @@ export class MemoryService {
 		assistantMessages: number;
 		thoughts: number;
 		} {
+		this.flushAssistantBuffer();
 		const messages = this.db.getAllMessages();
 		return {
 			totalMessages: messages.length,
@@ -72,7 +100,25 @@ export class MemoryService {
 	 * Close database connection
 	 */
 	public close(): void {
+		// Flush any remaining buffered assistant message
+		this.flushAssistantBuffer();
 		this.db.close();
+	};
+
+	/**
+	 * Force flush the assistant message buffer
+	 * Called when closing or before retrieving conversation history
+	 */
+	private flushAssistantBuffer(): void {
+		if (this.assistantStreamTimer) {
+			clearTimeout(this.assistantStreamTimer);
+			this.assistantStreamTimer = null;
+		};
+
+		if (this.assistantStreamBuffer.trim()) {
+			this.db.addMessage('assistant', this.assistantStreamBuffer.trim());
+			this.assistantStreamBuffer = '';
+		};
 	};
 
 	/**

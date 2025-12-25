@@ -323,6 +323,7 @@ const config: Linter.Config[] = [
 			'@typescript-eslint/no-explicit-any': 'warn',
 			'@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
 			'no-console': 'off',
+			'no-undef': 'off',
 			semi: ['error', 'always'],
 			quotes: ['error', 'single'],
 			indent: ['error', 'tab'],

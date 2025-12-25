@@ -238,11 +238,11 @@ export class DatabaseService {
 	/**
 	 * Merge consecutive messages from the same role within a time threshold
 	 * @param messages Array of messages to merge
-	 * @param timeThresholdMs Merge messages within this many milliseconds (default: 30000 = 30 seconds)
+	 * @param timeThresholdMs Merge messages within this many milliseconds (default: 5000 = 5 seconds)
 	 */
 	private mergeConsecutiveMessages(
 		messages: ConversationMessage[],
-		timeThresholdMs: number = 30000
+		timeThresholdMs: number = 5000
 	): ConversationMessage[] {
 		if (messages.length === 0) return messages;
 
@@ -258,7 +258,9 @@ export class DatabaseService {
 			if (current.role === currentGroup.role && timeDiff <= timeThresholdMs)
 				currentGroup = {
 					...currentGroup,
-					content: `${currentGroup.content}\n\n${current.content}`
+					content: currentGroup.content.trim().length > 0 && current.content.trim().length > 0
+						? `${currentGroup.content} ${current.content}`
+						: `${currentGroup.content}${current.content}`
 				};
 			else {
 				// Different role or time threshold exceeded, save and start new group

@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import { GoogleGenAI, Modality } from '@google/genai';
 import type {
 	Session,
