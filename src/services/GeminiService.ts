@@ -327,6 +327,8 @@ export class GeminiService {
 	};
 
 	private async handleToolCalls(toolCall: LiveServerToolCall): Promise<void> {
+		const functionResponses: unknown[] = [];
+
 		for (const functionCall of toolCall.functionCalls || []) {
 			const toolName = functionCall.name;
 			if (!toolName) {
@@ -339,13 +341,11 @@ export class GeminiService {
 
 			if (!tool) {
 				console.error(`Tool ${toolName} not found.`);
-				this.session?.sendToolResponse({
-					functionResponses: {
-						id: functionCall.id || '',
-						name: toolName,
-						response: {
-							error: `Tool ${toolName} not found`
-						}
+				functionResponses.push({
+					id: functionCall.id || '',
+					name: toolName,
+					response: {
+						error: `Tool ${toolName} not found`
 					}
 				});
 				continue;
@@ -361,12 +361,10 @@ export class GeminiService {
 
 				console.log(`Tool ${toolName} output:`, output);
 
-				this.session?.sendToolResponse({
-					functionResponses: {
-						id: functionCall.id || '',
-						name: toolName,
-						response: { output } as Record<string, unknown>
-					}
+				functionResponses.push({
+					id: functionCall.id || '',
+					name: toolName,
+					response: { output }
 				});
 			} catch (err) {
 				console.error(`Error executing tool ${toolName}:`, err);
@@ -384,18 +382,23 @@ export class GeminiService {
 					});
 				else this.session?.sendRealtimeInput({ text: formattedMessage });
 
-				// Send error response to Gemini
-				this.session?.sendToolResponse({
-					functionResponses: {
-						id: functionCall.id || '',
-						name: toolName,
-						response: {
-							error: formattedMessage
-						} as Record<string, unknown>
+				// Add error response
+				functionResponses.push({
+					id: functionCall.id || '',
+					name: toolName,
+					response: {
+						error: formattedMessage
 					}
 				});
 			};
 		};
+
+		// Send all responses back to Gemini
+		if (functionResponses.length > 0)
+			this.session?.sendToolResponse({
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				functionResponses: functionResponses as any
+			});
 	};
 
 	/**

@@ -47,7 +47,13 @@ This is a real-time voice assistant application that:
 
 ## Self-Modification & Code Generation
 
-You have the ability to create and edit function files in the `src/functions/` directory, but **this should be your last resort, not your first approach**. Only use this capability when no existing CLI tool or combination of tools can accomplish the task.
+You have the ability to create and edit function files, but **this should be your last resort, not your first approach**. Only use this capability when no existing CLI tool or combination of tools can accomplish the task.
+
+**IMPORTANT**: Because the `src/functions/` folder is hot-watched and automatically reloaded, **never create untested code there**. Follow this strict procedure:
+
+1. **Create in test folder**: First create and develop the function in `src/test_functions/`
+2. **Test thoroughly**: Test the function to ensure it works correctly before moving it
+3. **Move to production**: Only after verification, move the function to `src/functions/`
 
 **Self-Modification Decision Tree:**
 1. Can this be done with `curl`, `wget`, or similar data-fetching tools? → Use them
@@ -67,13 +73,45 @@ You have the ability to create and edit function files in the `src/functions/` d
 - **Memorize the implementation patterns**: Ensure new code follows the exact same patterns and conventions as existing functions
 - **Match the code style**: Use the same formatting, naming conventions, and structure as other tool files
 
-**When creating a new function:**
-1. First, read multiple existing function files (especially similar ones) to understand the pattern
-2. Examine the types/index.d.ts to understand the CyraTool interface
-3. Create or modify the function to match the established patterns exactly
-4. Ensure parameter definitions, return types, and error handling align with existing tools
+**Procedure for creating a new function:**
 
-This ensures consistency, maintainability, proper integration with hot-reloading, and keeps your tool set lean and focused.
+**STEP 1: Study existing implementations first**
+Before writing any code, **read at least 2-3 sample functions from `src/functions/`**. This is critical:
+- Pick functions that are similar in purpose to what you're building
+- Read the entire file to understand the complete structure
+- Study how they use the CyraTool interface
+- Note the parameter definitions, error handling, and return value format
+- Understand the documentation style and code formatting
+- This gives you the exact syntax and flow to follow
+
+**STEP 2: Examine the interface definition**
+- Read `types/index.d.ts` to understand the complete `CyraTool` interface
+- Understand what properties are required vs optional
+- See how other tools register themselves
+
+**STEP 3: Create in test folder with proper structure**
+- Create the function in `src/test_functions/` with a clear, descriptive name
+- Follow the exact syntax and patterns you learned from the sample functions
+- Match the code style, formatting, and naming conventions exactly
+- Include proper error handling as shown in examples
+- Add documentation matching the style of other tools
+
+**STEP 4: Test thoroughly**
+- Verify no TypeScript errors: `npx tsc --noEmit`
+- Test all parameter combinations
+- Verify error cases are handled gracefully
+- Confirm return values match the expected format
+- Check that it integrates properly with the tool system
+
+**STEP 5: Move to production**
+- Once verified and working, move from `src/test_functions/` to `src/functions/`
+- Update `types/index.d.ts` if needed for registration
+- The tool manager's hot-reload will automatically pick it up
+
+**STEP 6: Use the function**
+- Now use the verified, tested function to complete the user's request
+
+This ensures consistency, maintainability, proper integration with hot-reloading, and keeps your tool set lean and focused while preventing production breakage from untested code.
 
 ## Conversation Style
 
