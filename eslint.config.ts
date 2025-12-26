@@ -39,16 +39,15 @@ const customRule: any = {
 
 				if (lastToken && lastToken.value === '}') {
 					const nextToken = sourceCode.getTokenAfter(lastToken);
-					if (!nextToken || nextToken.value !== ';') {
+					if (!nextToken || nextToken.value !== ';')
 						context.report({
 							node,
 							messageId: 'missingSemicolon',
 							fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
 								fixer.insertTextAfter(lastToken, ';')
 						});
-					}
-				}
-			}
+				};
+			};
 
 			// For IfStatements, also check the else block (alternate)
 			if (node.type === 'IfStatement' && node.alternate) {
@@ -60,17 +59,16 @@ const customRule: any = {
 
 					if (lastToken && lastToken.value === '}') {
 						const nextToken = sourceCode.getTokenAfter(lastToken);
-						if (!nextToken || nextToken.value !== ';') {
+						if (!nextToken || nextToken.value !== ';')
 							context.report({
 								node: alternate,
 								messageId: 'missingSemicolon',
 								fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
 									fixer.insertTextAfter(lastToken, ';')
 							});
-						}
-					}
-				}
-			}
+					};
+				};
+			};
 		};
 
 		const checkTryStatement = (node: any) => {
@@ -81,15 +79,14 @@ const customRule: any = {
 
 			if (lastToken && lastToken.value === '}') {
 				const nextToken = sourceCode.getTokenAfter(lastToken);
-				if (!nextToken || nextToken.value !== ';') {
+				if (!nextToken || nextToken.value !== ';')
 					context.report({
 						node,
 						messageId: 'missingSemicolon',
 						fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
 							fixer.insertTextAfter(lastToken, ';')
 					});
-				}
-			}
+			};
 		};
 
 		const checkFunctionDeclaration = (node: any) => {
@@ -101,16 +98,15 @@ const customRule: any = {
 
 				if (lastToken && lastToken.value === '}') {
 					const nextToken = sourceCode.getTokenAfter(lastToken);
-					if (!nextToken || nextToken.value !== ';') {
+					if (!nextToken || nextToken.value !== ';')
 						context.report({
 							node,
 							messageId: 'missingSemicolon',
 							fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
 								fixer.insertTextAfter(lastToken, ';')
 						});
-					}
-				}
-			}
+				};
+			};
 		};
 
 		const checkMethodDefinition = (node: any) => {
@@ -122,16 +118,15 @@ const customRule: any = {
 
 				if (lastToken && lastToken.value === '}') {
 					const nextToken = sourceCode.getTokenAfter(lastToken);
-					if (!nextToken || nextToken.value !== ';') {
+					if (!nextToken || nextToken.value !== ';')
 						context.report({
 							node,
 							messageId: 'missingSemicolon',
 							fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
 								fixer.insertTextAfter(lastToken, ';')
 						});
-					}
-				}
-			}
+				};
+			};
 		};
 
 		const checkClassDeclaration = (node: any) => {
@@ -143,16 +138,15 @@ const customRule: any = {
 
 				if (lastToken && lastToken.value === '}') {
 					const nextToken = sourceCode.getTokenAfter(lastToken);
-					if (!nextToken || nextToken.value !== ';') {
+					if (!nextToken || nextToken.value !== ';')
 						context.report({
 							node,
 							messageId: 'missingSemicolon',
 							fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
 								fixer.insertTextAfter(lastToken, ';')
 						});
-					}
-				}
-			}
+				};
+			};
 		};
 
 		const checkWithStatement = (node: any) => {
@@ -163,16 +157,15 @@ const customRule: any = {
 
 				if (lastToken && lastToken.value === '}') {
 					const nextToken = sourceCode.getTokenAfter(lastToken);
-					if (!nextToken || nextToken.value !== ';') {
+					if (!nextToken || nextToken.value !== ';')
 						context.report({
 							node,
 							messageId: 'missingSemicolon',
 							fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
 								fixer.insertTextAfter(lastToken, ';')
 						});
-					}
-				}
-			}
+				};
+			};
 		};
 
 		const checkArrowFunctionExpression = (node: any) => {
@@ -198,16 +191,15 @@ const customRule: any = {
 
 				if (lastToken && lastToken.value === '}') {
 					const nextToken = sourceCode.getTokenAfter(lastToken);
-					if (!nextToken || nextToken.value !== ';') {
+					if (!nextToken || nextToken.value !== ';')
 						context.report({
 							node,
 							messageId: 'missingSemicolon',
 							fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
 								fixer.insertTextAfter(lastToken, ';')
 						});
-					}
-				}
-			}
+				};
+			};
 		};
 
 		const checkFunctionExpression = (node: any) => {
@@ -230,16 +222,15 @@ const customRule: any = {
 
 				if (lastToken && lastToken.value === '}') {
 					const nextToken = sourceCode.getTokenAfter(lastToken);
-					if (!nextToken || nextToken.value !== ';') {
+					if (!nextToken || nextToken.value !== ';')
 						context.report({
 							node,
 							messageId: 'missingSemicolon',
 							fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
 								fixer.insertTextAfter(lastToken, ';')
 						});
-					}
-				}
-			}
+				};
+			};
 		};
 
 		const checkInterfaceOrExport = (node: any) => {
@@ -248,15 +239,14 @@ const customRule: any = {
 
 			if (lastToken && lastToken.value === '}') {
 				const nextToken = sourceCode.getTokenAfter(lastToken);
-				if (!nextToken || nextToken.value !== ';') {
+				if (!nextToken || nextToken.value !== ';')
 					context.report({
 						node,
 						messageId: 'missingSemicolon',
 						fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
 							fixer.insertTextAfter(lastToken, ';')
 					});
-				}
-			}
+			};
 		};
 
 		return {
@@ -299,12 +289,11 @@ const unnecesaryCurlyRule: any = {
 		const checkSingleStatement = (node: any) => {
 			const body = node.consequent || node.body;
 			// Check if body is a block with a single statement
-			if (body?.type === 'BlockStatement' && body.body?.length === 1) {
+			if (body?.type === 'BlockStatement' && body.body?.length === 1)
 				context.report({
 					node: body,
 					messageId: 'unnecessaryBraces'
 				});
-			}
 		};
 
 		return {
@@ -345,13 +334,12 @@ const avoidForEachRule: any = {
 						(callback?.type === 'ArrowFunctionExpression' ||
 							callback?.type === 'FunctionExpression') &&
 						callback?.params?.length === 1
-					) {
+					)
 						context.report({
 							node,
 							messageId: 'avoidForEach'
 						});
-					}
-				}
+				};
 			}
 		};
 	}
