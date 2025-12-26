@@ -216,7 +216,8 @@ export class DatabaseService {
 	 * Close the database connection
 	 */
 	public close(): void {
-		this.db.close();
+		if (this.db)
+			this.db.close();
 	};
 
 	/* eslint-disable @typescript-eslint/no-explicit-any */
@@ -268,5 +269,58 @@ export class DatabaseService {
 		merged.push(currentGroup);
 
 		return merged;
+	};
+
+	/**
+	 * Store an embedding for a message
+	 */
+	public storeEmbedding(messageId: number, embedding: string): void {
+		const timestamp = new Date().toISOString();
+		const stmt = this.db.prepare(`
+      INSERT OR REPLACE INTO message_embeddings (message_id, embedding, timestamp)
+      VALUES (?, ?, ?)
+    `);
+		stmt.run(messageId, embedding, timestamp);
+	};
+
+	/**
+	 * Get embedding for a message
+	 */
+	public getEmbedding(messageId: number): string | null {
+		const stmt = this.db.prepare(
+			'SELECT embedding FROM message_embeddings WHERE message_id = ?'
+		);
+		const result = stmt.get(messageId) as { embedding: string } | undefined;
+		return result?.embedding ?? null;
+	};
+
+	/**
+	 * Get all embeddings with their message IDs and content for similarity search
+	 */
+	public getAllEmbeddingsWithContent(): Array<{
+		messageId: number;
+		content: string;
+		role: string;
+		embedding: string;
+		timestamp: string;
+	}> {
+		const stmt = this.db.prepare(`
+      SELECT 
+        m.id as messageId,
+        m.content,
+        m.role,
+        me.embedding,
+        m.timestamp
+      FROM message_embeddings me
+      JOIN messages m ON m.id = me.message_id
+      ORDER BY m.timestamp DESC
+    `);
+		return stmt.all() as Array<{
+			messageId: number;
+			content: string;
+			role: string;
+			embedding: string;
+			timestamp: string;
+		}>;
 	};
 };

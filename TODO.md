@@ -29,12 +29,12 @@ Priority improvements for transitioning from prototype to production-grade agent
   - [x] Include context window size limits (last 20 messages via `getRecentContext()`)
 
 ### 1.2 Semantic Search & Retrieval
-- [ ] Integrate vector embeddings for conversation search
-  - [ ] Research lightweight embeddings (local or API-based)
-  - [ ] Store embeddings alongside message history
-- [ ] Implement `searchMemory(query)` for retrieval
-  - [ ] Find relevant past interactions
-  - [ ] Include in system prompt for context
+- [x] Integrate vector embeddings for conversation search
+  - [x] Research lightweight embeddings (local or API-based)
+  - [x] Store embeddings alongside message history
+- [x] Implement `searchMemory(query)` for retrieval
+  - [x] Find relevant past interactions
+  - [x] Include in system prompt for context
 
 ### 1.3 Memory Types
 - [x] Implement short-term memory (current session)

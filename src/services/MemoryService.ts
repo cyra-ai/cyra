@@ -3,6 +3,12 @@ import {
 	type ConversationMessage,
 	type MessageSummary
 } from './DatabaseService.ts';
+import {
+	generateEmbedding,
+	cosineSimilarity,
+	serializeEmbedding,
+	deserializeEmbedding
+} from '../utils/embeddings.ts';
 
 export class MemoryService {
 	private db: DatabaseService;
@@ -25,7 +31,11 @@ export class MemoryService {
 	 * Add a user message to persistent storage
 	 */
 	public addUserMessage(content: string): ConversationMessage {
-		return this.db.addMessage('user', content);
+		const message = this.db.addMessage('user', content);
+		this.storeMessageEmbedding(message.id, content).catch((err) =>
+			console.error('Failed to generate embedding:', err)
+		);
+		return message;
 	};
 
 	/**
@@ -42,7 +52,13 @@ export class MemoryService {
 		// Set new timer to flush after inactivity
 		this.assistantStreamTimer = setTimeout(() => {
 			if (this.assistantStreamBuffer.trim()) {
-				this.db.addMessage('assistant', this.assistantStreamBuffer.trim());
+				const message = this.db.addMessage(
+					'assistant',
+					this.assistantStreamBuffer.trim()
+				);
+				this.storeMessageEmbedding(message.id, message.content).catch((err) =>
+					console.error('Failed to generate embedding:', err)
+				);
 				this.assistantStreamBuffer = '';
 				this.assistantStreamTimer = null;
 			};
@@ -212,5 +228,71 @@ export class MemoryService {
 		};
 
 		return formatted;
+	};
+	/**
+	 * Search conversation memory by semantic similarity
+	 * Returns the most relevant past interactions based on embedding similarity
+	 */
+	public async searchMemory(
+		query: string,
+		topK: number = 5,
+		minSimilarity: number = 0.3
+	): Promise<ConversationMessage[]> {
+		try {
+			// Generate embedding for the query
+			const queryEmbedding = await generateEmbedding(query);
+
+			// Get all messages with embeddings
+			const allEmbeddings = this.db.getAllEmbeddingsWithContent();
+
+			if (allEmbeddings.length === 0) return [];
+
+			// Calculate similarity scores for all messages
+			const similarities = allEmbeddings.map((item) => ({
+				messageId: item.messageId,
+				content: item.content,
+				role: item.role,
+				timestamp: item.timestamp,
+				similarity: cosineSimilarity(
+					queryEmbedding,
+					deserializeEmbedding(item.embedding)
+				)
+			}));
+
+			// Filter by minimum similarity and sort by similarity descending
+			const relevant = similarities
+				.filter((item) => item.similarity >= minSimilarity)
+				.sort((a, b) => b.similarity - a.similarity)
+				.slice(0, topK);
+
+			// Convert back to ConversationMessage format
+			return relevant.map((item) => ({
+				id: item.messageId,
+				role: item.role as 'user' | 'assistant' | 'system' | 'thought',
+				content: item.content,
+				timestamp: item.timestamp
+			}));
+		} catch (error) {
+			console.error('Error searching memory:', error);
+			return [];
+		};
+	};
+
+	/**
+	 * Store embedding for a message
+	 * Called automatically when adding new messages
+	 */
+	private async storeMessageEmbedding(
+		messageId: number,
+		content: string
+	): Promise<void> {
+		try {
+			const embedding = await generateEmbedding(content);
+			const serialized = serializeEmbedding(embedding);
+			this.db.storeEmbedding(messageId, serialized);
+		} catch (error) {
+			console.error('Error generating embedding for message:', error);
+			// Fail gracefully - continue without embedding
+		};
 	};
 };

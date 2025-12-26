@@ -123,6 +123,37 @@ export class GeminiService {
 		});
 	};
 
+	/**
+	 * Inject semantically relevant memories into the session for context
+	 * Called periodically to enhance AI understanding with past interactions
+	 */
+	public async injectSemanticContext(query: string): Promise<void> {
+		if (!this.session) return;
+
+		try {
+			// Search for semantically similar past interactions
+			const relevantMemories = await this.memoryService.searchMemory(
+				query,
+				3, // Top 3 most relevant
+				0.4 // Minimum similarity threshold
+			);
+
+			if (relevantMemories.length === 0) return;
+
+			// Format relevant memories for injection
+			let contextMessage = '## Relevant Past Interactions (For Context)\n\n';
+			for (const memory of relevantMemories) {
+				const role = memory.role === 'thought' ? 'internal_thought' : memory.role;
+				contextMessage += `[${role.toUpperCase()}] ${memory.content.substring(0, 200)}...\n`;
+			};
+
+			// Send as internal context (text, not audio)
+			this.session.sendRealtimeInput({ text: contextMessage });
+		} catch (error) {
+			console.error('Error injecting semantic context:', error);
+		};
+	};
+
 	private async handleMessage(
 		message: LiveServerMessage,
 		onAudioData: AudioDataCallback
@@ -137,6 +168,11 @@ export class GeminiService {
 			if (transcript) {
 				this.memoryService.addUserMessage(transcript);
 				console.log(`User: ${transcript}`);
+
+				// Inject semantically relevant context based on user query
+				this.injectSemanticContext(transcript).catch((err) =>
+					console.error('Error injecting semantic context:', err)
+				);
 			};
 		};
 

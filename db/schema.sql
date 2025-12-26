@@ -27,3 +27,14 @@ CREATE TABLE IF NOT EXISTS message_summaries (
 );
 
 CREATE INDEX IF NOT EXISTS idx_summaries_range ON message_summaries(start_message_id, end_message_id);
+
+CREATE TABLE IF NOT EXISTS message_embeddings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  message_id INTEGER NOT NULL UNIQUE,
+  embedding TEXT NOT NULL,
+  timestamp TEXT NOT NULL,
+  FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
+);
+
+-- Index for efficient embedding lookups
+CREATE INDEX IF NOT EXISTS idx_embeddings_message_id ON message_embeddings(message_id);
