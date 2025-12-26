@@ -20,7 +20,11 @@ export default class GeminiLiveClient extends EventEmitter {
 		this.session = await this.client.live.connect({
 			model: this.model,
 			config: {
-				responseModalities: [Modality.AUDIO]
+				responseModalities: [Modality.AUDIO],
+				inputAudioTranscription: {},
+				outputAudioTranscription: {},
+				proactivity: { proactiveAudio: true },
+				enableAffectiveDialog: true
 			},
 			callbacks: {
 				onopen: () => {
