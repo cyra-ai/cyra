@@ -8,36 +8,36 @@ dotenv.config();
 interface GoogleConfig {
 	apiKey: string;
 	model: string;
-}
+};
 
 interface AudioMicConfig {
 	rate: string;
 	bitwidth: string;
 	channels: string;
 	device: string;
-}
+};
 
 interface AudioSpeakerConfig {
 	channels: number;
 	bitDepth: number;
 	sampleRate: number;
-}
+};
 
 interface AudioConfig {
 	mic: AudioMicConfig;
 	speaker: AudioSpeakerConfig;
-}
+};
 
 interface SystemConfig {
 	functionsPath: string;
 	tmpDir: string;
-}
+};
 
 export interface AppConfig {
 	google: GoogleConfig;
 	audio: AudioConfig;
 	system: SystemConfig;
-}
+};
 
 /**
  * Validates and returns application configuration

@@ -10,7 +10,7 @@ export interface ConversationMessage {
 	metadata?: Record<string, unknown>;
 	memory_type?: 'short-term' | 'long-term';
 	is_summarized?: number;
-}
+};
 
 export interface MessageSummary {
 	id: number;
@@ -18,7 +18,7 @@ export interface MessageSummary {
 	end_message_id: number;
 	summary: string;
 	timestamp: string;
-}
+};
 
 export class DatabaseService {
 	private db: Database.Database;

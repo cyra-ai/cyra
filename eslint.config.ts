@@ -50,28 +50,28 @@ const customRule: any = {
 				}
 			}
 
-		// For IfStatements, also check the else block (alternate)
-		if (node.type === 'IfStatement' && node.alternate) {
-			const alternate = node.alternate;
-			// Only check if it's a BlockStatement (else { ... }), not else if
-			if (alternate?.type === 'BlockStatement' && alternate.body?.length >= 1) {
-				const tokens = sourceCode.getTokens(alternate);
-				const lastToken = tokens[tokens.length - 1];
+			// For IfStatements, also check the else block (alternate)
+			if (node.type === 'IfStatement' && node.alternate) {
+				const alternate = node.alternate;
+				// Only check if it's a BlockStatement (else { ... }), not else if
+				if (alternate?.type === 'BlockStatement' && alternate.body?.length >= 1) {
+					const tokens = sourceCode.getTokens(alternate);
+					const lastToken = tokens[tokens.length - 1];
 
-				if (lastToken && lastToken.value === '}') {
-					const nextToken = sourceCode.getTokenAfter(lastToken);
-					if (!nextToken || nextToken.value !== ';') {
-						context.report({
-							node: alternate,
-							messageId: 'missingSemicolon',
-							fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
-								fixer.insertTextAfter(lastToken, ';')
-						});
+					if (lastToken && lastToken.value === '}') {
+						const nextToken = sourceCode.getTokenAfter(lastToken);
+						if (!nextToken || nextToken.value !== ';') {
+							context.report({
+								node: alternate,
+								messageId: 'missingSemicolon',
+								fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
+									fixer.insertTextAfter(lastToken, ';')
+							});
+						}
 					}
 				}
 			}
-		}
-	};
+		};
 
 		const checkTryStatement = (node: any) => {
 			// TryStatement has block, handler, and finalizer properties
@@ -182,13 +182,17 @@ const customRule: any = {
 			// (not a callback argument to another function)
 			const parent = node.parent;
 			const isVariableDeclaration = parent?.type === 'VariableDeclarator';
-			const isExportDeclaration = parent?.type === 'ExportNamedDeclaration' || parent?.type === 'ExportDefaultDeclaration';
+			const isExportDeclaration =
+				parent?.type === 'ExportNamedDeclaration' ||
+				parent?.type === 'ExportDefaultDeclaration';
 			const isAssignment = parent?.type === 'AssignmentExpression';
 
 			// Only enforce semicolon if it's a statement-like context
-			if ((isVariableDeclaration || isExportDeclaration || isAssignment) && 
-				body?.type === 'BlockStatement' && 
-				body.body?.length >= 1) {
+			if (
+				(isVariableDeclaration || isExportDeclaration || isAssignment) &&
+				body?.type === 'BlockStatement' &&
+				body.body?.length >= 1
+			) {
 				const tokens = sourceCode.getTokens(body);
 				const lastToken = tokens[tokens.length - 1];
 
@@ -211,12 +215,16 @@ const customRule: any = {
 			// Similar check for function expressions - only enforce semicolon in statement contexts
 			const parent = node.parent;
 			const isVariableDeclaration = parent?.type === 'VariableDeclarator';
-			const isExportDeclaration = parent?.type === 'ExportNamedDeclaration' || parent?.type === 'ExportDefaultDeclaration';
+			const isExportDeclaration =
+				parent?.type === 'ExportNamedDeclaration' ||
+				parent?.type === 'ExportDefaultDeclaration';
 			const isAssignment = parent?.type === 'AssignmentExpression';
 
-			if ((isVariableDeclaration || isExportDeclaration || isAssignment) && 
-				body?.type === 'BlockStatement' && 
-				body.body?.length >= 1) {
+			if (
+				(isVariableDeclaration || isExportDeclaration || isAssignment) &&
+				body?.type === 'BlockStatement' &&
+				body.body?.length >= 1
+			) {
 				const tokens = sourceCode.getTokens(body);
 				const lastToken = tokens[tokens.length - 1];
 
@@ -230,6 +238,23 @@ const customRule: any = {
 								fixer.insertTextAfter(lastToken, ';')
 						});
 					}
+				}
+			}
+		};
+
+		const checkInterfaceOrExport = (node: any) => {
+			const tokens = sourceCode.getTokens(node);
+			const lastToken = tokens[tokens.length - 1];
+
+			if (lastToken && lastToken.value === '}') {
+				const nextToken = sourceCode.getTokenAfter(lastToken);
+				if (!nextToken || nextToken.value !== ';') {
+					context.report({
+						node,
+						messageId: 'missingSemicolon',
+						fix: (fixer: { insertTextAfter: (arg0: any, arg1: string) => any }) =>
+							fixer.insertTextAfter(lastToken, ';')
+					});
 				}
 			}
 		};
@@ -248,7 +273,11 @@ const customRule: any = {
 			'ClassDeclaration:exit': checkClassDeclaration,
 			'WithStatement:exit': checkWithStatement,
 			'ArrowFunctionExpression:exit': checkArrowFunctionExpression,
-			'FunctionExpression:exit': checkFunctionExpression
+			'FunctionExpression:exit': checkFunctionExpression,
+			'TSInterfaceDeclaration:exit': checkInterfaceOrExport,
+			'TSTypeAliasDeclaration:exit': checkInterfaceOrExport,
+			'ExportNamedDeclaration:exit': checkInterfaceOrExport,
+			'ExportDefaultDeclaration:exit': checkInterfaceOrExport
 		};
 	}
 };
@@ -370,7 +399,6 @@ const config: Linter.Config[] = [
 			'comma-dangle': ['error', 'never'],
 			curly: 'off',
 			'custom/no-unnecessary-braces': 'error',
-			'custom/avoid-forEach': 'error',
 			'no-trailing-spaces': 'error',
 			'custom/semicolon-after-control': 'error',
 			'func-style': ['error', 'expression']

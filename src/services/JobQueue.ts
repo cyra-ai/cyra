@@ -9,13 +9,13 @@ export interface JobProgress {
 	error?: string;
 	startTime: number;
 	endTime?: number;
-}
+};
 
 export interface Job {
 	id: string;
 	execute: () => Promise<unknown>;
 	onProgress?: (progress: number, message: string) => void;
-}
+};
 
 export class JobQueue extends EventEmitter {
 	private jobs: Map<string, JobProgress> = new Map();
