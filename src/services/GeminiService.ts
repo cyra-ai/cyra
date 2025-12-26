@@ -7,11 +7,16 @@ import type {
 import { config } from '../config.ts';
 import { ToolManager } from './ToolManager.ts';
 import { MemoryService } from './MemoryService.ts';
+import { SessionStateManager } from './SessionStateManager.ts';
 import { JobQueue, type JobProgress } from './JobQueue.ts';
 import type {
 	ConversationEntry,
 	AudioDataCallback
 } from '../../types/gemini.d.ts';
+import type { CyraTool } from '../../types/index.d.ts';
+import { withRetry } from '../utils/withRetry.ts';
+import { withTimeout } from '../utils/withTimeout.ts';
+import { classifyError, formatErrorForUser } from '../utils/errorRecovery.ts';
 import * as path from 'path';
 import * as fsp from 'fs/promises';
 import * as fs from 'fs';
@@ -21,6 +26,7 @@ export class GeminiService {
 	private session: Session | null = null;
 	private toolManager: ToolManager;
 	private memoryService: MemoryService;
+	private sessionStateManager: SessionStateManager;
 	private jobQueue: JobQueue;
 	private thoughtLog: ConversationEntry[] = [];
 	private logFile: string;
@@ -29,6 +35,9 @@ export class GeminiService {
 		this.client = new GoogleGenAI({ apiKey: config.google.apiKey });
 		this.toolManager = toolManager;
 		this.memoryService = new MemoryService();
+		this.sessionStateManager = new SessionStateManager(
+			path.resolve(process.cwd(), config.system.tmpDir)
+		);
 		this.jobQueue = JobQueue.getInstance();
 
 		// Listen for job events and send updates to user
@@ -58,8 +67,24 @@ export class GeminiService {
 		return this.memoryService;
 	};
 
+	/**
+	 * Check if session was interrupted and offer recovery
+	 */
+	public async checkForInterruption(): Promise<boolean> {
+		const wasInterrupted = await this.sessionStateManager.wasInterrupted();
+		if (wasInterrupted) {
+			const previousState = await this.sessionStateManager.loadState();
+			console.log('Previous session was interrupted:', previousState);
+			return true;
+		};
+		return false;
+	};
+
 	public async connect(onAudioData: AudioDataCallback): Promise<void> {
 		if (this.session) await this.disconnect();
+
+		// Save session state before connecting
+		await this.saveSessionState('connecting');
 
 		// Build system instruction with dynamic context
 		const systemInstructionText = await this.buildSystemInstruction();
@@ -82,6 +107,9 @@ export class GeminiService {
 			callbacks: {
 				onopen: () => {
 					console.log('Gemini session connected.');
+					this.saveSessionState('connected').catch((err) =>
+						console.error('Failed to save session state:', err)
+					);
 				},
 				onmessage: (message: LiveServerMessage) => {
 					this.handleMessage(message, onAudioData).catch((err) =>
@@ -111,6 +139,9 @@ export class GeminiService {
 			this.session = null;
 		};
 		this.memoryService.close();
+
+		// Clear session state on successful disconnect
+		await this.clearSessionState();
 	};
 
 	public sendAudio(data: Buffer): void {
@@ -221,28 +252,123 @@ export class GeminiService {
 				continue;
 			};
 
-			const tool = this.toolManager.getTool(toolName);
-			console.log(`Tool \`${toolName}\` executed.`);
+			const tool = this.toolManager.getTool(toolName) as CyraTool | null;
+			console.log(`Tool \`${toolName}\` requested.`);
 
 			if (!tool) {
 				console.error(`Tool ${toolName} not found.`);
+				this.session?.sendToolResponse({
+					functionResponses: {
+						id: functionCall.id || '',
+						name: toolName,
+						response: {
+							error: `Tool ${toolName} not found`
+						}
+					}
+				});
 				continue;
 			};
+
 			try {
-				const result = await tool.execute(functionCall.args || {});
-				if ('error' in result) console.error(result.error);
-				else console.log(result.output);
+				// Determine if tool is required (default: true)
+				const isRequired = tool.required !== false;
+
+				// Execute tool with retry and timeout
+				const result = await this.executeToolWithResilience(
+					tool,
+					functionCall.args || {},
+					isRequired
+				);
+
+				if ('error' in result) {
+					console.error(`Tool ${toolName} failed:`, result.error);
+					if (!isRequired) {
+						// Optional tool failed, provide user-friendly error
+						const { message } = formatErrorForUser(
+							new Error(result.error),
+							toolName,
+							isRequired
+						);
+						this.session?.sendRealtimeInput({ text: message });
+					};
+				} else {
+					console.log(`Tool ${toolName} output:`, result.output);
+				};
 
 				this.session?.sendToolResponse({
 					functionResponses: {
 						id: functionCall.id || '',
-						name: tool.name,
+						name: toolName,
 						response: result
 					}
 				});
 			} catch (err) {
-				console.error(`Error executing tool ${tool.name}:`, err);
+				console.error(`Error executing tool ${toolName}:`, err);
+				const isRequired = tool.required !== false;
+				const { message, shouldContinue } = formatErrorForUser(
+					err,
+					toolName,
+					isRequired
+				);
+
+				// Notify user of error
+				if (!shouldContinue)
+					this.session?.sendRealtimeInput({
+						text: `Critical error: ${message}`
+					});
+				else this.session?.sendRealtimeInput({ text: message });
+
+				// Send error response to Gemini
+				this.session?.sendToolResponse({
+					functionResponses: {
+						id: functionCall.id || '',
+						name: toolName,
+						response: {
+							error: message
+						}
+					}
+				});
 			};
+		};
+	};
+
+	/**
+	 * Execute tool with retry and timeout resilience
+	 */
+	private async executeToolWithResilience(
+		tool: CyraTool,
+		args: Record<string, unknown>,
+		_isRequired: boolean
+	): Promise<{ output: string } | { error: string }> {
+		const toolName = tool.name || 'unknown';
+		const timeoutMs =
+			tool.timeoutMs || config.errorHandling.timeout.defaultTimeoutMs;
+
+		try {
+			// Wrap execution with retry logic
+			const result = await withRetry(
+				() => withTimeout(tool.execute(args), timeoutMs, `Tool ${toolName}`),
+				config.errorHandling.retry,
+				`Tool ${toolName}`
+			);
+
+			return result;
+		} catch (error) {
+			const errorType = classifyError(error);
+			const message = error instanceof Error ? error.message : String(error);
+
+			// Log error details
+			console.error(
+				`[${errorType.toUpperCase()}] Tool ${toolName} failed:`,
+				message
+			);
+
+			// Store error in memory for context
+			this.memoryService.addThought(
+				`Tool execution failed: ${toolName} - ${errorType} - ${message}`
+			);
+
+			return { error: message };
 		};
 	};
 
@@ -344,5 +470,32 @@ export class GeminiService {
 	 */
 	public getJobQueue(): JobQueue {
 		return this.jobQueue;
+	};
+
+	/**
+	 * Save current session state for crash recovery
+	 */
+	private async saveSessionState(activity: string): Promise<void> {
+		try {
+			const stats = this.memoryService.getStats();
+			await this.sessionStateManager.saveState({
+				timestamp: new Date().toISOString(),
+				toolsLoaded: this.toolManager
+					.getTools()
+					.map((t) => t.name)
+					.filter((name): name is string => name !== undefined),
+				messageCount: stats.totalMessages,
+				lastActivity: activity
+			});
+		} catch (error) {
+			console.error('Failed to save session state:', error);
+		};
+	};
+
+	/**
+	 * Restore session after crash and clear state
+	 */
+	public async clearSessionState(): Promise<void> {
+		await this.sessionStateManager.clearState();
 	};
 };

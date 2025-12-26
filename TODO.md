@@ -59,46 +59,39 @@ Priority improvements for transitioning from prototype to production-grade agent
   - [x] Exponential backoff strategy (interface defined)
   - [x] Max retry attempts configuration (interface defined)
   - [x] Backoff delay customization (interface defined)
-- [ ] Wrap tool execution with retry wrapper
-  - [ ] Create `withRetry()` utility function
-  - [ ] Apply to all tool invocations in `GeminiService.handleToolCalls()`
-- [ ] Add retry configuration to `config.ts`
-  ```typescript
-  retry: {
-    maxAttempts: 3,
-    initialDelayMs: 1000,
-    backoffMultiplier: 2
-  }
-  ```
+- [x] Wrap tool execution with retry wrapper
+  - [x] Create `withRetry()` utility function
+  - [x] Apply to all tool invocations in `GeminiService.handleToolCalls()`
+- [x] Add retry configuration to `config.ts`
 
 ### 2.2 Timeout Handling
 - [x] Create `TimeoutConfig` interface (defined in `types/utils.d.ts`)
-- [ ] Add timeout wrapper for tool execution
-  - [ ] Default timeout: 30 seconds per tool
-  - [ ] Configurable per tool via tool metadata
-- [ ] Implement timeout for audio operations
-  - [ ] Gracefully handle silent microphone periods
-- [ ] Add timeout configuration to `config.ts`
+- [x] Add timeout wrapper for tool execution
+  - [x] Default timeout: 30 seconds per tool
+  - [x] Configurable per tool via tool metadata
+- [x] Implement timeout for audio operations
+  - [x] Gracefully handle silent microphone periods
+- [x] Add timeout configuration to `config.ts`
 
 ### 2.3 Error Recovery
 - [x] Implement tool execution error catching in `handleToolCalls()` (basic try/catch in place)
   - [x] Log detailed error information
-  - [ ] Notify Gemini of failure with error context
-  - [ ] Provide user-friendly error messages
-- [ ] Add session recovery on crash
-  - [ ] Save session state before potential failure points
-  - [ ] Offer to resume on restart
-- [ ] Create `ErrorRecoveryStrategy` for different error types
-  - [ ] Network errors: retry
-  - [ ] Permission errors: skip tool, inform user
-  - [ ] Timeout: abort tool, try alternative
+  - [x] Notify Gemini of failure with error context
+  - [x] Provide user-friendly error messages
+- [x] Add session recovery on crash
+  - [x] Save session state before potential failure points
+  - [x] Offer to resume on restart
+- [x] Create `ErrorRecoveryStrategy` for different error types
+  - [x] Network errors: retry
+  - [x] Permission errors: skip tool, inform user
+  - [x] Timeout: abort tool, try alternative
 
 ### 2.4 Graceful Degradation
-- [ ] Make individual tools optional
-  - [ ] Mark tools as `required` vs `optional`
-  - [ ] Continue if optional tools fail
-- [ ] Implement fallback responses when tool fails
-  - [ ] "I tried to execute X, but it failed. Would you like me to try something else?"
+- [x] Make individual tools optional
+  - [x] Mark tools as `required` vs `optional`
+  - [x] Continue if optional tools fail
+- [x] Implement fallback responses when tool fails
+  - [x] "I tried to execute X, but it failed. Would you like me to try something else?"
 
 ---
 

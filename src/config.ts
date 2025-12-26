@@ -33,10 +33,27 @@ interface SystemConfig {
 	tmpDir: string;
 };
 
+interface RetryConfig {
+	maxAttempts: number;
+	initialDelayMs: number;
+	backoffMultiplier: number;
+};
+
+interface TimeoutConfig {
+	defaultTimeoutMs: number;
+	toolSpecificTimeouts?: Record<string, number>;
+};
+
+interface ErrorHandlingConfig {
+	retry: RetryConfig;
+	timeout: TimeoutConfig;
+};
+
 export interface AppConfig {
 	google: GoogleConfig;
 	audio: AudioConfig;
 	system: SystemConfig;
+	errorHandling: ErrorHandlingConfig;
 };
 
 /**
@@ -65,6 +82,21 @@ const validateConfig = (): AppConfig => {
 	const functionsPath = process.env.FUNCTIONS_PATH || 'src/functions';
 	const tmpDir = process.env.TMP_DIR || 'tmp';
 
+	// Error handling configuration
+	const retryMaxAttempts = parseInt(process.env.RETRY_MAX_ATTEMPTS || '3', 10);
+	const retryInitialDelayMs = parseInt(
+		process.env.RETRY_INITIAL_DELAY_MS || '1000',
+		10
+	);
+	const retryBackoffMultiplier = parseInt(
+		process.env.RETRY_BACKOFF_MULTIPLIER || '2',
+		10
+	);
+	const timeoutDefaultMs = parseInt(
+		process.env.TIMEOUT_DEFAULT_MS || '30000',
+		10
+	);
+
 	// Validate numeric values
 	if (isNaN(speakerChannels) || speakerChannels < 1)
 		throw new Error('SPEAKER_CHANNELS must be a positive integer');
@@ -72,6 +104,14 @@ const validateConfig = (): AppConfig => {
 		throw new Error('SPEAKER_BIT_DEPTH must be 8, 16, 24, or 32');
 	if (isNaN(speakerSampleRate) || speakerSampleRate < 8000)
 		throw new Error('SPEAKER_SAMPLE_RATE must be at least 8000');
+	if (isNaN(retryMaxAttempts) || retryMaxAttempts < 1)
+		throw new Error('RETRY_MAX_ATTEMPTS must be a positive integer');
+	if (isNaN(retryInitialDelayMs) || retryInitialDelayMs < 0)
+		throw new Error('RETRY_INITIAL_DELAY_MS must be non-negative');
+	if (isNaN(retryBackoffMultiplier) || retryBackoffMultiplier < 1)
+		throw new Error('RETRY_BACKOFF_MULTIPLIER must be >= 1');
+	if (isNaN(timeoutDefaultMs) || timeoutDefaultMs < 1000)
+		throw new Error('TIMEOUT_DEFAULT_MS must be at least 1000');
 
 	return {
 		google: {
@@ -94,6 +134,16 @@ const validateConfig = (): AppConfig => {
 		system: {
 			functionsPath,
 			tmpDir
+		},
+		errorHandling: {
+			retry: {
+				maxAttempts: retryMaxAttempts,
+				initialDelayMs: retryInitialDelayMs,
+				backoffMultiplier: retryBackoffMultiplier
+			},
+			timeout: {
+				defaultTimeoutMs: timeoutDefaultMs
+			}
 		}
 	};
 };

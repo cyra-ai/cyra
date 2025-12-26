@@ -12,4 +12,17 @@ export interface CyraTool extends FunctionDeclaration {
 	execute: (
 		args?: Record<string, unknown>
 	) => Promise<{ output: string } | { error: string }>;
+
+	/**
+	 * Whether this tool is required for core functionality
+	 * If false, tool failures will be handled gracefully
+	 * @default true
+	 */
+	required?: boolean;
+
+	/**
+	 * Timeout in milliseconds for this specific tool
+	 * If not set, uses default from config
+	 */
+	timeoutMs?: number;
 }
