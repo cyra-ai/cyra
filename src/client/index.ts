@@ -4,7 +4,7 @@ await new Promise(resolve => setTimeout(resolve, 1000));
 import WebSocket from 'ws';
 import mic from 'mic';
 import Speaker from 'speaker';
-import { config } from '../config.ts';
+import { config } from '../config/index.ts';
 
 const port = config.system.port || 3000;
 const ws = new WebSocket(`ws://localhost:${port}`);

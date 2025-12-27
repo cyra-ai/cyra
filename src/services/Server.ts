@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { WebSocketServer, WebSocket } from 'ws';
-import { config } from '../config.ts';
+import { config } from '../config/index.ts';
 import Gemini from './Gemini.ts';
 import { initializeDatabase, SessionManager, MessageStore } from './Database.ts';
 

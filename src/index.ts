@@ -1,5 +1,5 @@
 
-import { config } from './config.ts';
+import { config } from './config/index.ts';
 import { Server } from './services/Server.ts';
 
 console.log('App Configuration:', config);

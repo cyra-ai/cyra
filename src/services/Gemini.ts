@@ -3,7 +3,7 @@ import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
 import type { FunctionCall, LiveServerToolCall } from '@google/genai';
 import { Session } from '@google/genai';
 import { EventEmitter } from 'events';
-import { config } from '../config.ts';
+import { config } from '../config/index.ts';
 import functions from './Functions.ts';
 
 interface AudioChunk {
