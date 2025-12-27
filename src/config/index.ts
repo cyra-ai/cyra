@@ -1,4 +1,7 @@
 import dotenv from 'dotenv';
+import { defaultMCPConfig } from './mcp.ts';
+
+import type { MCPConfig } from './mcp.ts';
 
 dotenv.config();
 
@@ -17,6 +20,7 @@ interface SystemConfig {
 export interface AppConfig {
 	google: GoogleConfig;
 	system: SystemConfig;
+	mcp: MCPConfig;
 };
 
 /**
@@ -45,7 +49,8 @@ const validateConfig = (): AppConfig => {
 		},
 		system: {
 			port
-		}
+		},
+		mcp: defaultMCPConfig
 	};
 };
 

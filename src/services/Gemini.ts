@@ -1,8 +1,11 @@
+/* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
+import type { FunctionCall } from '@google/genai';
 import { Session } from '@google/genai';
 import { EventEmitter } from 'events';
 import { config } from '../config/index.ts';
+import MCPClient from './MCPClient.ts';
 
 interface AudioChunk {
 	data: string;
@@ -17,10 +20,13 @@ interface TurnCompleteData {
 	modelAudio: AudioChunk[];
 };
 
+type ToolCall = FunctionCall & { id: string; name: string; args?: Record<string, unknown> };
+
 export default class GeminiLiveClient extends EventEmitter {
 	private client: GoogleGenAI;
 	private session: Session | null = null;
 	private model: string;
+	private mcpClient: MCPClient;
 	private currentUserTurnText: string = '';
 	private currentUserTranscript: string = '';
 	private currentModelTranscript: string = '';
@@ -38,6 +44,9 @@ export default class GeminiLiveClient extends EventEmitter {
 	emit(event: 'thoughts', text: string): boolean;
 	emit(event: 'audio', data: string, mimeType: string): boolean;
 	emit(event: 'turnComplete', data: TurnCompleteData): boolean;
+	emit(event: 'toolCall', toolCall: ToolCall): boolean;
+	emit(event: 'toolResult', data: any): boolean;
+	emit(event: 'toolError', data: any): boolean;
 	emit(event: string | symbol, ...args: any[]): boolean {
 		return super.emit(event, ...args);
 	};
@@ -53,6 +62,9 @@ export default class GeminiLiveClient extends EventEmitter {
 	on(event: 'thoughts', listener: (text: string) => void): this;
 	on(event: 'audio', listener: (data: string, mimeType: string) => void): this;
 	on(event: 'turnComplete', listener: (data: TurnCompleteData) => void): this;
+	on(event: 'toolCall', listener: (toolCall: ToolCall) => void): this;
+	on(event: 'toolResult', listener: (data: any) => void): this;
+	on(event: 'toolError', listener: (data: any) => void): this;
 	on(event: string | symbol, listener: (...args: any[]) => void): this {
 		return super.on(event, listener);
 	};
@@ -68,27 +80,38 @@ export default class GeminiLiveClient extends EventEmitter {
 	once(event: 'thoughts', listener: (text: string) => void): this;
 	once(event: 'audio', listener: (data: string, mimeType: string) => void): this;
 	once(event: 'turnComplete', listener: (data: TurnCompleteData) => void): this;
+	once(event: 'toolCall', listener: (toolCall: ToolCall) => void): this;
+	once(event: 'toolResult', listener: (data: any) => void): this;
+	once(event: 'toolError', listener: (data: any) => void): this;
 	once(event: string | symbol, listener: (...args: any[]) => void): this {
 		return super.once(event, listener);
 	};
 
-	constructor() {
+	constructor(mcpClient: MCPClient) {
 		super();
 		this.client = new GoogleGenAI({ apiKey: config.google.apiKey });
 		this.model = config.google.model;
+		this.mcpClient = mcpClient;
 	};
 
 	public async connect(): Promise<void> {
 		this.disconnect();
 
 		try {
+			// Get tool definitions from MCP servers
+			const toolDefinitions = this.mcpClient.getToolDefinitionsForGemini();
+			const toolsConfig = toolDefinitions.length > 0
+				? [{ functionDeclarations: toolDefinitions }]
+				: [];
+
 			this.session = await this.client.live.connect({
 				model: this.model,
 				config: {
 					responseModalities: [Modality.AUDIO],
 					systemInstruction: 'You are a helpful audio assistant. Respond concisely.',
 					inputAudioTranscription: {},
-					outputAudioTranscription: {}
+					outputAudioTranscription: {},
+					...(toolsConfig.length > 0 && { tools: toolsConfig })
 				},
 				callbacks: {
 					onopen: async () => {
@@ -102,8 +125,8 @@ export default class GeminiLiveClient extends EventEmitter {
 								});
 						}, 100);
 					},
-					onmessage: (message: LiveServerMessage) => {
-						this.handleMessage(message);
+					onmessage: async (message: LiveServerMessage) => {
+						await this.handleMessage(message);
 					},
 					onclose: (event) => {
 						console.log('Disconnected from Gemini Live API');
@@ -165,7 +188,48 @@ export default class GeminiLiveClient extends EventEmitter {
 		};
 	};
 
-	private handleMessage(message: LiveServerMessage): void {
+	private async handleToolCall(toolCall: any): Promise<void> {
+		const { name, id, args } = toolCall;
+
+		if (!name) {
+			console.error('Tool call missing name');
+			return;
+		};
+
+		console.log(`Handling tool call: ${name} (ID: ${id}) with args:`, args);
+
+		try {
+			const result = await this.mcpClient.executeTool(name, args);
+			console.log(`Tool executed: ${name} (ID: ${id}) with result:`, result);
+			this.emit('toolResult', { id, name, result });
+
+			// Send tool response back to Gemini
+			if (this.session)
+				await this.session.sendToolResponse({
+					functionResponses: {
+						id,
+						name,
+						response: { output: result }
+					}
+				});
+		} catch (error) {
+			const errorMessage = (error as Error).message || String(error);
+			console.error(`Error executing tool ${name} (ID: ${id}):`, error);
+			this.emit('toolError', { id, name, error: errorMessage });
+
+			// Send error response back to Gemini
+			if (this.session)
+				await this.session.sendToolResponse({
+					functionResponses: {
+						id,
+						name,
+						response: { error: errorMessage }
+					}
+				});
+		};
+	};
+
+	private async handleMessage(message: LiveServerMessage): Promise<void> {
 		const { serverContent } = message;
 
 		if (serverContent) {
@@ -222,6 +286,13 @@ export default class GeminiLiveClient extends EventEmitter {
 				this.currentThoughtsText = '';
 				this.currentModelAudioChunks = [];
 			};
+		} else if (message.toolCall) {
+			// Handle MCP tool calls
+			if (message.toolCall.functionCalls)
+				for (const call of message.toolCall.functionCalls)
+					this.handleToolCall(call);
+
+			this.emit('toolCall', message.toolCall as ToolCall);
 		};
 	};
 };

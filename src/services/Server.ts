@@ -2,17 +2,20 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { config } from '../config/index.ts';
 import Gemini from './Gemini.ts';
+import MCPClient from './MCPClient.ts';
 import { initializeDatabase, SessionManager, MessageStore } from './Database.ts';
 
 export class Server {
 	private wss: WebSocketServer;
 	private sessionManager: SessionManager;
 	private messageStore: MessageStore;
+	private mcpClient: MCPClient;
 
 	constructor() {
 		initializeDatabase();
 		this.sessionManager = new SessionManager();
 		this.messageStore = new MessageStore();
+		this.mcpClient = new MCPClient(config.mcp);
 
 		this.wss = new WebSocketServer({ port: config.system.port });
 		console.log(`WebSocket server started on port ${config.system.port}`);
@@ -21,14 +24,26 @@ export class Server {
 			console.log('New client connected');
 			this.handleConnection(ws, req);
 		});
+
+		// Initialize MCP servers
+		this.initializeMCP();
+	};
+
+	private async initializeMCP(): Promise<void> {
+		try {
+			await this.mcpClient.initialize();
+		} catch (error) {
+			console.error('Failed to initialize MCP:', error);
+		};
 	};
 
 	public close(): void {
+		this.mcpClient.shutdown();
 		this.wss.close();
 	};
 
 	private handleConnection(ws: WebSocket, req: any): void {
-		const geminiClient = new Gemini();
+		const geminiClient = new Gemini(this.mcpClient);
 		let isGeminiReady = false;
 		const messageQueue: string[] = [];
 
@@ -95,6 +110,23 @@ export class Server {
 		geminiClient.on('userText', (text: string) => {
 			if (ws.readyState === WebSocket.OPEN)
 				ws.send(JSON.stringify({ type: 'userText', text }));
+		});
+
+		geminiClient.on('toolCall', (toolCall: any) => {
+			if (ws.readyState === WebSocket.OPEN)
+				ws.send(JSON.stringify({ type: 'toolCall', toolCall }));
+		});
+
+		geminiClient.on('toolResult', (data: any) => {
+			console.log(`Tool executed: ${data.name}`, data.result);
+			if (ws.readyState === WebSocket.OPEN)
+				ws.send(JSON.stringify({ type: 'toolResult', name: data.name, result: data.result }));
+		});
+
+		geminiClient.on('toolError', (data: any) => {
+			console.error(`Tool error: ${data.name}`, data.error);
+			if (ws.readyState === WebSocket.OPEN)
+				ws.send(JSON.stringify({ type: 'toolError', name: data.name, error: data.error }));
 		});
 
 		geminiClient.on('interrupted', () => {
