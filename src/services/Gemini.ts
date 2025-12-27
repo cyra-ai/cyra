@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
-import type { LiveServerToolCall } from '@google/genai';
+import type { FunctionCall, LiveServerToolCall } from '@google/genai';
 import { Session } from '@google/genai';
 import { EventEmitter } from 'events';
 import { config } from '../config.ts';
+import functions from './Functions.ts';
 
 interface AudioChunk {
 	data: string;
@@ -39,7 +41,10 @@ export default class GeminiLiveClient extends EventEmitter {
 	emit(event: 'audio', data: string, mimeType: string): boolean;
 	emit(event: 'turnComplete', data: TurnCompleteData): boolean;
 	emit(event: 'toolCall', toolCall: LiveServerToolCall): boolean;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+	emit(event: 'toolResult', data: any): boolean;
+	// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+	emit(event: 'toolError', data: any): boolean;
 	emit(event: string | symbol, ...args: any[]): boolean {
 		return super.emit(event, ...args);
 	};
@@ -56,7 +61,8 @@ export default class GeminiLiveClient extends EventEmitter {
 	on(event: 'audio', listener: (data: string, mimeType: string) => void): this;
 	on(event: 'turnComplete', listener: (data: TurnCompleteData) => void): this;
 	on(event: 'toolCall', listener: (toolCall: LiveServerToolCall) => void): this;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	on(event: 'toolResult', listener: (data: any) => void): this;
+	on(event: 'toolError', listener: (data: any) => void): this;
 	on(event: string | symbol, listener: (...args: any[]) => void): this {
 		return super.on(event, listener);
 	};
@@ -73,7 +79,8 @@ export default class GeminiLiveClient extends EventEmitter {
 	once(event: 'audio', listener: (data: string, mimeType: string) => void): this;
 	once(event: 'turnComplete', listener: (data: TurnCompleteData) => void): this;
 	once(event: 'toolCall', listener: (toolCall: LiveServerToolCall) => void): this;
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	once(event: 'toolResult', listener: (data: any) => void): this;
+	once(event: 'toolError', listener: (data: any) => void): this;
 	once(event: string | symbol, listener: (...args: any[]) => void): this {
 		return super.once(event, listener);
 	};
@@ -94,7 +101,8 @@ export default class GeminiLiveClient extends EventEmitter {
 					responseModalities: [Modality.AUDIO],
 					systemInstruction: 'You are a helpful audio assistant. Respond concisely.',
 					inputAudioTranscription: {},
-					outputAudioTranscription: {}
+					outputAudioTranscription: {},
+					tools: [{ functionDeclarations: functions.getToolDefinitions() }]
 				},
 				callbacks: {
 					onopen: async () => {
@@ -130,13 +138,12 @@ export default class GeminiLiveClient extends EventEmitter {
 
 	public disconnect(): void {
 		if (this.session) {
-			if (this.session.conn) {
+			if (this.session.conn)
 				try {
 					this.session.conn.close();
 				} catch (e) {
 					console.error('Error closing connection:', e);
 				};
-			};
 			this.session = null;
 		};
 	};
@@ -169,6 +176,48 @@ export default class GeminiLiveClient extends EventEmitter {
 		} catch (error) {
 			console.error('Error sending text:', error);
 			this.emit('error', error);
+		};
+	};
+
+	private async handleFunctionCall(toolCall: FunctionCall): Promise<void> {
+		const { name, id, args } = toolCall;
+
+		if (!name) {
+			console.error('Function call missing name');
+			return;
+		};
+		console.log(`Handling function call: ${name} (ID: ${id}) with args:`, args);
+
+		if (!functions.hasFunction(name)) {
+			const errorMsg = `Function not found: ${name}`;
+			console.error(errorMsg);
+			this.emit('toolError', { id, error: errorMsg });
+			return;
+		};
+
+		try {
+			const result = await functions.executeFunction(name, args);
+			console.log(`Function executed: ${name} (ID: ${id}) with result:`, result);
+			this.emit('toolResult', { id, name, result });
+			if (this.session)
+				await this.session.sendToolResponse({
+					functionResponses: {
+						id,
+						name,
+						response: { output: result }
+					}
+				});
+		} catch (error) {
+			console.error(`Error executing function ${name} (ID: ${id}):`, error);
+			this.emit('toolError', { id, error: (error as Error).message || error });
+			if (this.session)
+				await this.session.sendToolResponse({
+					functionResponses: {
+						id,
+						name,
+						response: { error: (error as Error).message || 'Unknown error'}
+					}
+				});
 		};
 	};
 
@@ -229,7 +278,11 @@ export default class GeminiLiveClient extends EventEmitter {
 				this.currentThoughtsText = '';
 				this.currentModelAudioChunks = [];
 			};
-		} else if (toolCall)
+		} else if (toolCall) {
+			if (toolCall.functionCalls)
+				for (const call of toolCall.functionCalls)
+					this.handleFunctionCall(call);
 			this.emit('toolCall', toolCall);
+		};
 	};
 };
