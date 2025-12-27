@@ -1,3 +1,6 @@
+console.log('Starting client...');
+await new Promise(resolve => setTimeout(resolve, 1000));
+
 import WebSocket from 'ws';
 import mic from 'mic';
 import Speaker from 'speaker';
@@ -19,7 +22,6 @@ ws.on('open', () => {
 ws.on('message', (data: WebSocket.Data) => {
 	try {
 		const message = JSON.parse(data.toString());
-		console.log('Received message type:', message.type);
 		if (message.type === 'setup_complete') {
 			sessionId = message.sessionId;
 			console.log('Server is ready (Gemini connected)');
@@ -28,17 +30,17 @@ ws.on('message', (data: WebSocket.Data) => {
 		} else if (message.type === 'audio')
 			playAudio(message.data);
 		else if (message.type === 'userTranscript')
-			console.log('You:', message.text);
+			process.stdout.write(`${message.text}`);
 		else if (message.type === 'modelTranscript')
-			console.log('Gemini (spoken):', message.text);
+			process.stdout.write(`${message.text}`);
 		else if (message.type === 'thoughts')
 			console.log('Gemini (thoughts):', message.text);
 		else if (message.type === 'userText')
-			console.log('You:', message.text);
+			process.stdout.write(`${message.text}`);
 		else if (message.type === 'interrupted')
 			console.log('Interrupted');
 		else if (message.type === 'turnComplete')
-			console.log(`Turn ${message.turnNumber} complete`);
+			process.stdout.write('\n');
 		else if (message.type === 'error')
 			console.error('Server error:', message.message);
 	} catch (error) {
