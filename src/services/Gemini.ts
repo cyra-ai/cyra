@@ -101,14 +101,12 @@ export default class GeminiLiveClient extends EventEmitter {
 						console.log('Connected to Gemini Live API');
 						this.emit('open');
 						// Send initial message to establish the connection
-						try {
-							await this.session?.sendRealtimeInput({
-								text: 'Hello, I am ready to listen.'
-							});
-							console.log('Sent initial connection message');
-						} catch (e) {
-							console.error('Failed to send initial message:', e);
-						};
+						setTimeout(async () => {
+							if (this.session)
+								await this.session.sendRealtimeInput({
+									text: 'Hello!'
+								});
+						}, 100);
 					},
 					onmessage: (message: LiveServerMessage) => {
 						this.handleMessage(message);
