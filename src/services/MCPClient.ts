@@ -5,6 +5,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { MCPServerConfig, MCPConfig } from '../config/mcp.ts';
+import { logger } from '../utils/logger.ts';
 
 interface MCPServerInstance {
 	config: MCPServerConfig;
@@ -31,26 +32,26 @@ export class MCPClient extends EventEmitter {
 	 */
 	public async initialize(): Promise<void> {
 		if (!this.config.enabled) {
-			console.log('MCP is disabled in configuration');
+			logger.info('MCP is disabled in configuration');
 			return;
 		};
 
-		console.log(`Initializing ${this.config.servers.length} MCP servers...`);
+		const serverNames = this.config.servers.map(s => s.name);
+		logger.hierarchy.section(`Initializing ${this.config.servers.length} MCP servers`, serverNames);
 
 		for (const serverConfig of this.config.servers) {
 			try {
 				await this.initializeServer(serverConfig);
 			} catch (error) {
-				console.error(
-					`Failed to initialize MCP server "${serverConfig.name}":`,
+				logger.hierarchy.report('error', `Failed to initialize MCP server "${serverConfig.name}"`, [
 					error instanceof Error ? error.message : String(error)
-				);
+				]);
 			};
 		};
 
-		console.log(
-			`Total MCP servers initialized: ${this.getInitializedServersCount()}`
-		);
+		logger.hierarchy.report('success', 'MCP servers initialized', [
+			`Total servers: ${this.getInitializedServersCount()}`
+		]);
 	};
 
 	/**
@@ -113,8 +114,8 @@ export class MCPClient extends EventEmitter {
 						try {
 							const response = JSON.parse(line);
 							this.handleMCPResponse(instance, response);
-						} catch (error) {
-							console.error(`Failed to parse MCP response: ${line}`, error);
+						} catch {
+							logger.debug(`Failed to parse MCP response from ${instance.config.name}`);
 						};
 					};
 				});
@@ -126,33 +127,24 @@ export class MCPClient extends EventEmitter {
 
 				// Handle process errors
 				spawnedProcess.on('error', (error: Error) => {
-					console.error(
-						`MCP server "${instance.config.name}" process error:`,
-						error
-					);
-					reject(error);
+					logger.hierarchy.report('error', `MCP server "${instance.config.name}" process error`, [error.message]);
 				});
 
 				spawnedProcess.on('exit', (code: number | null) => {
-					console.log(
-						`MCP server "${instance.config.name}" exited with code ${code}`
-					);
+					logger.info(`MCP server "${instance.config.name}" exited with code ${code}`);
 					if (stderrOutput)
-						console.error(`MCP server stderr: ${stderrOutput}`);
+						logger.debug(`MCP server stderr: ${stderrOutput}`);
 					instance.initialized = false;
 				});
 
 				instance.initialized = true;
-				console.log(
-					`Successfully initialized MCP server: ${instance.config.name}`
-				);
+				logger.success(`Successfully initialized MCP server: ${instance.config.name}`);
 
 				// Discover tools from the server
 				this.discoverToolsStdio(instance).catch((error) => {
-					console.error(
-						`Failed to discover tools for ${instance.config.name}:`,
-						error
-					);
+					logger.hierarchy.report('error', `Failed to discover tools for ${instance.config.name}`, [
+						String(error)
+					]);
 				});
 
 				resolve();
@@ -252,14 +244,15 @@ export class MCPClient extends EventEmitter {
 				throw new Error('No response from server during initialization');
 
 			instance.initialized = true;
-			console.log(
-				`Successfully initialized MCP server: ${instance.config.name}`
-			);
+			logger.success(`Successfully initialized MCP server: ${instance.config.name}`);
 
 			// Discover tools from the server
 			await this.discoverToolsStreamableHTTP(instance);
 		} catch (error) {
-			throw new Error(`Failed to initialize Streamable HTTP server: ${error}`);
+			logger.hierarchy.report('error', 'Failed to initialize Streamable HTTP server', [
+				String(error)
+			]);
+			throw error;
 		};
 	};
 
@@ -329,10 +322,9 @@ export class MCPClient extends EventEmitter {
 
 			return result;
 		} catch (error) {
-			console.error(
-				`Streamable HTTP request failed for ${instance.config.name}:`,
-				error
-			);
+			logger.hierarchy.report('error', `Streamable HTTP request failed for ${instance.config.name}`, [
+				String(error)
+			]);
 			throw error;
 		};
 	};
@@ -369,8 +361,8 @@ export class MCPClient extends EventEmitter {
 						try {
 							const data = JSON.parse(currentData);
 							events.push(data);
-						} catch (e) {
-							console.error('Failed to parse SSE data:', e);
+						} catch {
+							logger.debug('Failed to parse SSE data');
 						};
 					};
 				};
@@ -411,29 +403,25 @@ export class MCPClient extends EventEmitter {
 		try {
 			const response = await this.sendStreamableHTTPRequest(instance, 'tools/list');
 
-			console.log(
-				`Tools response from ${instance.config.name}:`,
-				JSON.stringify(response, null, 2)
-			);
-
 			if (response && response.tools && Array.isArray(response.tools)) {
 				instance.tools = response.tools.map((tool: any) => ({
 					name: tool.name,
 					description: tool.description || '',
 					inputSchema: tool.inputSchema
 				} as Tool));
-				console.log(
-					`Discovered ${instance.tools.length} tools from ${instance.config.name}: ${instance.tools.map((t) => t.name).join(', ')}`
+				logger.hierarchy.list(
+					`Discovered tools from ${instance.config.name}`,
+					instance.tools.map(t => t.name),
+					`Total: ${instance.tools.length}`
 				);
 			} else {
-				console.log(`No tools found in response from ${instance.config.name}`);
+				logger.info(`No tools found in response from ${instance.config.name}`);
 				instance.tools = [];
 			};
 		} catch (error) {
-			console.error(
-				`Failed to discover tools from ${instance.config.name}:`,
-				error
-			);
+			logger.hierarchy.report('error', `Failed to discover tools from ${instance.config.name}`, [
+				String(error)
+			]);
 			instance.tools = [];
 		};
 	};
@@ -452,18 +440,19 @@ export class MCPClient extends EventEmitter {
 					description: tool.description || '',
 					inputSchema: tool.inputSchema
 				} as Tool));
-				console.log(
-					`Discovered ${instance.tools.length} tools from ${instance.config.name}: ${instance.tools.map((t) => t.name).join(', ')}`
+				logger.hierarchy.list(
+					`Discovered tools from ${instance.config.name}`,
+					instance.tools.map(t => t.name),
+					`Total: ${instance.tools.length}`
 				);
 			} else {
-				console.log(`No tools found in response from ${instance.config.name}`);
+				logger.info(`No tools found in response from ${instance.config.name}`);
 				instance.tools = [];
 			};
 		} catch (error) {
-			console.error(
-				`Failed to discover tools from ${instance.config.name}:`,
-				error
-			);
+			logger.hierarchy.report('error', `Failed to discover tools from ${instance.config.name}`, [
+				String(error)
+			]);
 			instance.tools = [];
 		};
 	};
@@ -505,7 +494,7 @@ export class MCPClient extends EventEmitter {
 		for (const server of this.servers.values()) {
 			const tool = server.tools.find((t) => t.name === toolName);
 			if (tool) {
-				console.log(`Executing tool "${toolName}" on server "${server.config.name}"`);
+				logger.info(`Executing tool "${toolName}" on server "${server.config.name}"`);
 				try {
 					let response;
 
@@ -563,7 +552,7 @@ export class MCPClient extends EventEmitter {
 				server.process.kill();
 
 		this.servers.clear();
-		console.log('All MCP servers shut down');
+		logger.info('All MCP servers shut down');
 	};
 };
 

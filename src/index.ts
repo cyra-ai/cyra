@@ -3,7 +3,11 @@ import { config } from './config/index.ts';
 import { Server } from './services/Server.ts';
 import { logger } from './utils/logger.ts';
 
-logger.log('App Configuration:', config);
+logger.hierarchy.details('App Configuration', {
+	mcp: config.mcp.enabled ? 'enabled' : 'disabled',
+	port: config.system.port,
+	model: config.google.model
+});
 
 /**
  * Check if dependencies are already installed
@@ -42,7 +46,7 @@ const runSetupScripts = async (): Promise<void> => {
 	if (serversWithDeps.length === 0)
 		return;
 
-	logger.log(`Checking dependencies for ${serversWithDeps.length} server(s)...`);
+	logger.hierarchy.section('Checking dependencies', serversWithDeps.map(s => s.name));
 
 	for (const serverConfig of serversWithDeps) {
 		const { setup, check } = serverConfig.dependencies!;
@@ -63,7 +67,7 @@ const runSetupScripts = async (): Promise<void> => {
  */
 const runSetupScript = (script: string, serverName: string): Promise<void> => {
 	return new Promise((resolve) => {
-		logger.log(`Running setup script for ${serverName}: ${script}`);
+		logger.info(`Setting up ${serverName}...`);
 
 		const childProcess = spawn('sh', ['-c', script], {
 			stdio: ['pipe', 'pipe', 'pipe'],

@@ -19,10 +19,10 @@ export class Server {
 		this.mcpClient = new MCPClient(config.mcp);
 
 		this.wss = new WebSocketServer({ port: config.system.port });
-		logger.success(`WebSocket server started on port ${config.system.port}`);
+		logger.hierarchy.report('success', 'WebSocket server ready', [`Port: ${config.system.port}`]);
 
 		this.wss.on('connection', (ws: WebSocket, req) => {
-			logger.log('New client connected');
+			logger.info('New client connected');
 			this.handleConnection(ws, req);
 		});
 
@@ -34,7 +34,7 @@ export class Server {
 		try {
 			await this.mcpClient.initialize();
 		} catch (error) {
-			logger.error('Failed to initialize MCP:', error);
+			logger.hierarchy.report('error', 'Failed to initialize MCP', [String(error)]);
 		};
 	};
 
@@ -55,10 +55,10 @@ export class Server {
 			: null;
 
 		if (session)
-			logger.log(`Resuming existing session: ${session.id}`);
+			logger.info(`Resuming existing session: ${session.id}`);
 		else {
 			session = this.sessionManager.createSession();
-			logger.log(`Session created: ${session.id}`);
+			logger.info(`Session created: ${session.id}`);
 		};
 
 		let currentTurnNumber = session.turn_count;
@@ -66,7 +66,7 @@ export class Server {
 		// Connect to Gemini
 		geminiClient.connect().then(() => {
 			isGeminiReady = true;
-			console.log('Gemini connection established');
+			logger.hierarchy.report('success', 'Gemini connection established');
 
 			// Send setup_complete to client with session info
 			if (ws.readyState === WebSocket.OPEN)
@@ -83,7 +83,7 @@ export class Server {
 				if (msg) this.processClientMessage(msg, geminiClient);
 			};
 		}).catch((error: Error) => {
-			logger.error('Failed to connect to Gemini:', error);
+			logger.hierarchy.report('error', 'Failed to connect to Gemini', [error.message]);
 			ws.close(1011, 'Failed to connect to Gemini');
 		});
 
@@ -119,14 +119,13 @@ export class Server {
 		});
 
 		geminiClient.on('toolResult', (data: any) => {
-			logger.success(`Tool executed: ${data.name}`);
-			logger.log('Result:', data.result);
+			logger.hierarchy.report('success', `Tool executed: ${data.name}`, [], JSON.stringify(data.result));
 			if (ws.readyState === WebSocket.OPEN)
 				ws.send(JSON.stringify({ type: 'toolResult', name: data.name, result: data.result }));
 		});
 
 		geminiClient.on('toolError', (data: any) => {
-			logger.error(`Tool error: ${data.name}`, data.error);
+			logger.hierarchy.report('error', `Tool error: ${data.name}`, [data.error]);
 			if (ws.readyState === WebSocket.OPEN)
 				ws.send(JSON.stringify({ type: 'toolError', name: data.name, error: data.error }));
 		});
@@ -138,7 +137,7 @@ export class Server {
 
 		geminiClient.on('turnComplete', (turnData: any) => {
 			currentTurnNumber++;
-			logger.success(`Turn ${currentTurnNumber} completed`);
+			logger.hierarchy.report('success', `Turn ${currentTurnNumber} completed`);
 
 			// Store messages in database
 			if (turnData.userTranscript)
@@ -152,13 +151,13 @@ export class Server {
 		});
 
 		geminiClient.on('error', (error: any) => {
-			logger.error('Gemini client error:', error);
+			logger.hierarchy.report('error', 'Gemini client error', [String(error)]);
 			if (ws.readyState === WebSocket.OPEN)
 				ws.send(JSON.stringify({ type: 'error', message: 'Gemini API error' }));
 		});
 
 		geminiClient.on('close', () => {
-			logger.log('Gemini connection closed');
+			logger.info('Gemini connection closed');
 			if (ws.readyState === WebSocket.OPEN)
 				ws.close();
 		});
@@ -167,7 +166,7 @@ export class Server {
 		ws.on('message', (data) => {
 			const message = data.toString();
 			if (!isGeminiReady) {
-				logger.warn('Buffering message until Gemini is ready');
+				logger.debug('Buffering message until Gemini is ready');
 				messageQueue.push(message);
 			} else {
 				this.processClientMessage(message, geminiClient);
@@ -175,12 +174,12 @@ export class Server {
 		});
 
 		ws.on('close', () => {
-			logger.log('Client disconnected');
+			logger.info('Client disconnected');
 			geminiClient.disconnect();
 		});
 
 		ws.on('error', (error) => {
-			logger.error('WebSocket error:', error);
+			logger.hierarchy.report('error', 'WebSocket error', [error.message]);
 			geminiClient.disconnect();
 		});
 	};
@@ -194,7 +193,7 @@ export class Server {
 			else if (parsed.type === 'text' && parsed.text)
 				geminiClient.sendText(parsed.text);
 		} catch (error) {
-			logger.error('Error parsing message from client:', error);
+			logger.hierarchy.report('error', 'Error parsing message from client', [String(error)]);
 		};
 	};
 };

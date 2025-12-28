@@ -130,17 +130,17 @@ export default class GeminiLiveClient extends EventEmitter {
 						await this.handleMessage(message);
 					},
 					onclose: (event) => {
-						logger.log('Disconnected from Gemini Live API');
+						logger.hierarchy.report('success', 'Disconnected from Gemini Live API');
 						this.emit('close', event);
 					},
 					onerror: (error) => {
-						logger.error('Gemini Live API Error:', error);
+						logger.hierarchy.report('error', 'Gemini Live API Error', [String(error)]);
 						this.emit('error', error);
 					}
 				}
 			});
 		} catch (error) {
-			logger.error('Error connecting to Gemini Live API:', error);
+			logger.hierarchy.report('error', 'Error connecting to Gemini Live API', [String(error)]);
 			this.emit('error', error);
 			throw error;
 		};
@@ -151,8 +151,8 @@ export default class GeminiLiveClient extends EventEmitter {
 			if (this.session.conn)
 				try {
 					this.session.conn.close();
-				} catch (e) {
-					logger.error('Error closing connection:', e);
+				} catch {
+					logger.warn('Error closing connection');
 				};
 			this.session = null;
 		};
@@ -172,7 +172,7 @@ export default class GeminiLiveClient extends EventEmitter {
 				}
 			});
 		} catch (error) {
-			logger.error('Error sending audio:', error);
+			logger.hierarchy.report('error', 'Error sending audio', [String(error)]);
 			this.emit('error', error);
 		};
 	};
@@ -184,7 +184,7 @@ export default class GeminiLiveClient extends EventEmitter {
 		try {
 			await this.session.sendRealtimeInput({ text });
 		} catch (error) {
-			logger.error('Error sending text:', error);
+			logger.hierarchy.report('error', 'Error sending text', [String(error)]);
 			this.emit('error', error);
 		};
 	};
@@ -197,12 +197,11 @@ export default class GeminiLiveClient extends EventEmitter {
 			return;
 		};
 
-		logger.info(`Handling tool call: ${name} (ID: ${id}) with args:`, args);
+		logger.hierarchy.section('Handling tool call', [`Name: ${name}`, `ID: ${id}`], `Args: ${JSON.stringify(args)}`);
 
 		try {
 			const result = await this.mcpClient.executeTool(name, args);
-			logger.success(`Tool executed: ${name} (ID: ${id})`);
-			logger.log('Result:', result);
+			logger.hierarchy.report('success', `Tool executed: ${name} (ID: ${id})`, [], JSON.stringify(result));
 			this.emit('toolResult', { id, name, result });
 
 			// Send tool response back to Gemini
@@ -216,7 +215,7 @@ export default class GeminiLiveClient extends EventEmitter {
 				});
 		} catch (error) {
 			const errorMessage = (error as Error).message || String(error);
-			logger.error(`Error executing tool ${name} (ID: ${id}):`, error);
+			logger.hierarchy.report('error', `Error executing tool ${name} (ID: ${id})`, [errorMessage]);
 			this.emit('toolError', { id, name, error: errorMessage });
 
 			// Send error response back to Gemini
