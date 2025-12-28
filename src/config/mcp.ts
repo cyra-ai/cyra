@@ -3,7 +3,7 @@
  * Defines which MCP servers to connect to and how
  */
 
-export type MCPServerType = 'stdio' | 'sse';
+export type MCPServerType = 'stdio' | 'sse' | 'streamable-http';
 
 export interface MCPServerConfig {
 	name: string;

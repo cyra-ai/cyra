@@ -43,7 +43,7 @@ export class MCPClient extends EventEmitter {
 			} catch (error) {
 				console.error(
 					`Failed to initialize MCP server "${serverConfig.name}":`,
-					error
+					error instanceof Error ? error.message : String(error)
 				);
 			};
 		};
@@ -66,8 +66,10 @@ export class MCPClient extends EventEmitter {
 		try {
 			if (serverConfig.type === 'stdio')
 				await this.initializeStdioServer(instance);
-			else if (serverConfig.type === 'sse')
+			else if (serverConfig.type === 'sse' || serverConfig.type === 'streamable-http')
 				await this.initializeSSEServer(instance);
+			else
+				throw new Error(`Unsupported server type: ${serverConfig.type}`);
 
 			this.servers.set(serverConfig.name, instance);
 		} catch (error) {
@@ -218,23 +220,221 @@ export class MCPClient extends EventEmitter {
 	};
 
 	/**
-	 * Initialize a SSE-based MCP server (remote HTTP)
+	 * Initialize a Streamable HTTP-based MCP server (remote HTTP)
 	 */
 	private async initializeSSEServer(instance: MCPServerInstance): Promise<void> {
-		const { url } = instance.config;
+		const { url, headers } = instance.config;
 
 		if (!url)
-			throw new Error('SSE server requires a URL');
+			throw new Error('Streamable HTTP server requires a URL');
 
 		try {
-			// Placeholder for SSE initialization
-			// This would involve making HTTP connections to the SSE endpoint
+			// Initialize streamable HTTP transport
+			instance.requestId = 0;
+			instance.pendingRequests = new Map();
+
+			// Store URL and headers for later use
+			(instance as any).httpUrl = url;
+			(instance as any).httpHeaders = headers || {};
+			(instance as any).sessionId = undefined;
+
+			// Test connection by sending initialize request
+			const initResponse = await this.sendStreamableHTTPRequest(instance, 'initialize', {
+				protocolVersion: '2025-06-18',
+				capabilities: {},
+				clientInfo: {
+					name: 'cyra-mcp-client',
+					version: '1.0.0'
+				}
+			}, true); // true = this is initialization
+
+			if (!initResponse)
+				throw new Error('No response from server during initialization');
+
 			instance.initialized = true;
 			console.log(
 				`Successfully initialized MCP server: ${instance.config.name}`
 			);
+
+			// Discover tools from the server
+			await this.discoverToolsStreamableHTTP(instance);
 		} catch (error) {
-			throw new Error(`Failed to initialize SSE server: ${error}`);
+			throw new Error(`Failed to initialize Streamable HTTP server: ${error}`);
+		};
+	};
+
+	/**
+	 * Send a request via Streamable HTTP transport
+	 */
+	private async sendStreamableHTTPRequest(
+		instance: MCPServerInstance,
+		method: string,
+		params?: any,
+		isInitialization: boolean = false
+	): Promise<any> {
+		const url = (instance as any).httpUrl;
+		const defaultHeaders = (instance as any).httpHeaders || {};
+		const sessionId = (instance as any).sessionId;
+
+		if (!instance.requestId)
+			instance.requestId = 0;
+
+		const id = ++instance.requestId;
+		const request = {
+			jsonrpc: '2.0',
+			id,
+			method,
+			...(params && { params })
+		};
+
+		try {
+			const headers: Record<string, string> = {
+				'Content-Type': 'application/json',
+				'Accept': 'application/json, text/event-stream',
+				'MCP-Protocol-Version': '2025-06-18',
+				...(defaultHeaders as Record<string, string>)
+			};
+
+			// Include session ID if available
+			if (sessionId)
+				headers['Mcp-Session-Id'] = sessionId;
+
+			const response = await fetch(url, {
+				method: 'POST',
+				headers,
+				body: JSON.stringify(request)
+			});
+
+			if (!response.ok)
+				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+
+			// Capture session ID from response header if this is initialization
+			if (isInitialization) {
+				const respSessionId = response.headers.get('Mcp-Session-Id');
+				if (respSessionId)
+					(instance as any).sessionId = respSessionId;
+			};
+
+			// Check if response is SSE stream or JSON
+			const contentType = response.headers.get('content-type');
+			let result;
+			if (contentType?.includes('text/event-stream'))
+				result = await this.parseSSEResponse(response);
+			else
+				result = await response.json();
+
+			// If the result is a JSON-RPC response with a result field, extract it
+			if (result && typeof result === 'object' && 'result' in result && 'jsonrpc' in result)
+				return result.result;
+
+			return result;
+		} catch (error) {
+			console.error(
+				`Streamable HTTP request failed for ${instance.config.name}:`,
+				error
+			);
+			throw error;
+		};
+	};
+
+	/**
+	 * Parse Server-Sent Events response
+	 */
+	private async parseSSEResponse(response: Response): Promise<any> {
+		const reader = response.body?.getReader();
+		if (!reader)
+			throw new Error('No response body');
+
+		const decoder = new TextDecoder();
+		let buffer = '';
+		const events: any[] = [];
+
+		try {
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done)
+					break;
+
+				buffer += decoder.decode(value, { stream: true });
+				const lines = buffer.split('\n');
+				buffer = lines.pop() || '';
+
+				let currentData = '';
+				for (const line of lines) {
+					if (!line.trim() || line.startsWith(':'))
+						continue;
+
+					if (line.startsWith('data: ')) {
+						currentData = line.slice(6);
+						try {
+							const data = JSON.parse(currentData);
+							events.push(data);
+						} catch (e) {
+							console.error('Failed to parse SSE data:', e);
+						};
+					};
+				};
+			};
+
+			// Process any remaining buffer
+			if (buffer.trim().startsWith('data: ')) {
+				try {
+					const data = JSON.parse(buffer.slice(6));
+					events.push(data);
+				} catch {
+					// Ignore parse errors for remaining buffer
+				};
+			};
+		} finally {
+			reader.releaseLock();
+		};
+
+		// Return the last complete response or merge all events
+		if (events.length > 0) {
+			const lastEvent = events[events.length - 1];
+			// If it's a complete JSON-RPC response, return it
+			if (lastEvent.result !== undefined)
+				return lastEvent.result;
+			if (lastEvent.error !== undefined)
+				throw new Error(lastEvent.error.message);
+			// Otherwise return the last event
+			return lastEvent;
+		};
+
+		return null;
+	};
+
+	/**
+	 * Discover available tools from a Streamable HTTP server
+	 */
+	private async discoverToolsStreamableHTTP(instance: MCPServerInstance): Promise<void> {
+		try {
+			const response = await this.sendStreamableHTTPRequest(instance, 'tools/list');
+
+			console.log(
+				`Tools response from ${instance.config.name}:`,
+				JSON.stringify(response, null, 2)
+			);
+
+			if (response && response.tools && Array.isArray(response.tools)) {
+				instance.tools = response.tools.map((tool: any) => ({
+					name: tool.name,
+					description: tool.description || '',
+					inputSchema: tool.inputSchema
+				} as Tool));
+				console.log(
+					`Discovered ${instance.tools.length} tools from ${instance.config.name}: ${instance.tools.map((t) => t.name).join(', ')}`
+				);
+			} else {
+				console.log(`No tools found in response from ${instance.config.name}`);
+				instance.tools = [];
+			};
+		} catch (error) {
+			console.error(
+				`Failed to discover tools from ${instance.config.name}:`,
+				error
+			);
+			instance.tools = [];
 		};
 	};
 
@@ -307,10 +507,20 @@ export class MCPClient extends EventEmitter {
 			if (tool) {
 				console.log(`Executing tool "${toolName}" on server "${server.config.name}"`);
 				try {
-					const response = await this.sendMCPRequest(server, 'tools/call', {
-						name: toolName,
-						arguments: args || {}
-					});
+					let response;
+
+					if (server.config.type === 'stdio')
+						response = await this.sendMCPRequest(server, 'tools/call', {
+							name: toolName,
+							arguments: args || {}
+						});
+					else if (server.config.type === 'sse' || server.config.type === 'streamable-http')
+						response = await this.sendStreamableHTTPRequest(server, 'tools/call', {
+							name: toolName,
+							arguments: args || {}
+						});
+					else
+						throw new Error(`Unsupported server type: ${server.config.type}`);
 
 					// Return the result as a JSON string
 					return JSON.stringify(response);
