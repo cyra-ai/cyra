@@ -16,12 +16,9 @@ export interface MCPServerConfig {
 	url?: string;
 	headers?: Record<string, string>;
 	// Optional dependencies setup and check
-	// setup: shell command to run for initial setup
 	// check: shell command to check if dependencies are already installed
-	dependencies?: {
-		setup?: string;
-		check?: string;
-	};
+	// setup: shell command to run for initial setup
+	setup?: string;
 };
 
 export interface MCPConfig {

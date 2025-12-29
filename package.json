@@ -5,7 +5,7 @@
 	"main": "src/index.ts",
 	"scripts": {
 		"build": "tsc",
-		"dev": "nodemon --require ts-node/register src/index.ts",
+		"dev": "nodemon --require ts-node/register src/index.ts --ignore tmp/**",
 		"start": "node --require ts-node/register src/index.ts",
 		"test:client": "node --require ts-node/register src/client/index.ts",
 		"lint": "eslint src/**/*.ts",
