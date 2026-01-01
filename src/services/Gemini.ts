@@ -8,6 +8,9 @@ import { config } from '../config/index.ts';
 import MCPClient from './MCPClient.ts';
 import { logger } from '../utils/logger.ts';
 
+import fs from 'fs';
+import path from 'path';
+
 interface AudioChunk {
 	data: string;
 	mimeType: string;
@@ -98,6 +101,8 @@ export default class GeminiLiveClient extends EventEmitter {
 	public async connect(): Promise<void> {
 		this.disconnect();
 
+		const systemPrompt = fs.readFileSync(path.join(process.cwd(), 'SystemPrompt.md'), 'utf-8');
+
 		try {
 			// Get tool definitions from MCP servers
 			const toolDefinitions = this.mcpClient.getToolDefinitionsForGemini();
@@ -109,7 +114,7 @@ export default class GeminiLiveClient extends EventEmitter {
 				model: this.model,
 				config: {
 					responseModalities: [Modality.AUDIO],
-					systemInstruction: 'You are a helpful audio assistant. Respond concisely.',
+					systemInstruction: systemPrompt,
 					inputAudioTranscription: {},
 					outputAudioTranscription: {},
 					...(toolsConfig.length > 0 && { tools: toolsConfig })
