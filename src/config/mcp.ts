@@ -54,6 +54,12 @@ export const defaultMCPConfig: MCPConfig = {
 			type: 'stdio',
 			command: 'npx',
 			args: ['-y', '@modelcontextprotocol/server-sequential-thinking@latest']
+		},
+		{
+			name: 'council',
+			type: 'stdio',
+			command: 'npx',
+			args: ['-y', 'agents-council@latest', 'mcp', '-n', 'Cyra']
 		}
 	]
 };
