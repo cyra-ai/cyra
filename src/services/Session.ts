@@ -1,4 +1,4 @@
-import { GoogleGenAI, Modality, Session } from '@google/genai';
+import { GoogleGenAI, Modality, Session as ISession } from '@google/genai';
 import { EventEmitter } from 'node:events';
 import TypedEmitter from 'typed-emitter';
 
@@ -8,11 +8,11 @@ import type { GeminiEvents } from '../../types/GeminiEvents.d.ts';
 
 const EvEmitter = EventEmitter as { new(): TypedEmitter<GeminiEvents> };
 
-class GeminiSession extends EvEmitter {
+class Session extends EvEmitter {
 	private client: GoogleGenAI;
 	private config: typeof config;
 	private initialized: boolean = false;
-	private session?: Session;
+	private session?: ISession;
 
 	constructor() {
 		super();
@@ -64,4 +64,4 @@ class GeminiSession extends EvEmitter {
 	};
 };
 
-export default GeminiSession;
+export default Session;
