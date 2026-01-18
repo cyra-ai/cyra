@@ -21,8 +21,13 @@ wss.on('connection', async (ws) => {
 		try {
 			const data: Payload = JSON.parse(message.toString());
 			switch (data.type) {
-			case 'realTimeInput':
-				session.sendRealtimeInput(data.payload);
+			case 'audio':
+				session.sendRealtimeInput({
+					audio: {
+						data: data.payload.data,
+						mimeType: 'audio/pcm'
+					}
+				});
 				break;
 			default:
 				console.warn('Unknown payload type received:', data.type);

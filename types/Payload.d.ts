@@ -1,10 +1,10 @@
-import type { LiveSendRealtimeInputParameters } from '@google/genai';
-
-type RealTime = {
-	type: 'realTimeInput';
-	payload: LiveSendRealtimeInputParameters;
+type Audio = {
+	type: 'audio';
+	payload: {
+		data: string; // Base64-encoded audio data
+	};
 };
 
-type Payload = RealTime;
+type Payload = Audio;
 
 export default Payload;
