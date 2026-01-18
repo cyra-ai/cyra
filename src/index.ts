@@ -1,13 +1,6 @@
-import GeminiSession from './services/Session.ts';
+import server from './clients/server.ts';
+import { config } from './config/index.ts';
 
-const geminiSession = new GeminiSession();
-
-geminiSession.on('ready', () => {
-	console.log('Gemini session is ready.');
+server.listen(config.system.port, () => {
+	console.log(`Server is listening on port ${config.system.port}`);
 });
-
-geminiSession.on('message', (data) => {
-	console.log('Received Gemini message:', data);
-});
-
-await geminiSession.connect();
