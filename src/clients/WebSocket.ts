@@ -1,20 +1,35 @@
 import { WebSocketServer } from 'ws';
 
+import Session from '../services/Session.ts';
+
 import server from './server.ts';
+
+import type Payload from '../../types/Payload.d.ts';
 
 const wss = new WebSocketServer({ server, path: '/ws' });
 
-wss.on('connection', (ws) => {
-	console.log('New WebSocket connection established.');
+wss.on('connection', async (ws) => {
+	const session = new Session();
+	await session.connect();
+	console.log('WebSocket client connected and session established.');
 
 	ws.on('message', (message) => {
-		console.log('Received message:', message.toString());
-		// Echo the message back to the client
-		ws.send(`Server received: ${message}`);
+		try {
+			const data: Payload = JSON.parse(message.toString());
+			switch (data.type) {
+			case 'realTimeInput':
+				session.sendRealtimeInput(data.payload);
+				break;
+			default:
+				console.warn('Unknown payload type received:', data.type);
+			};
+		} catch (err) {
+			console.error('Error processing WebSocket message:', err);
+		};
 	});
 
-	ws.on('close', () => {
-		console.log('WebSocket connection closed.');
+	session.on('message', (data) => {
+		ws.send(JSON.stringify(data));
 	});
 });
 

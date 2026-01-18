@@ -1,10 +1,11 @@
 import { GoogleGenAI, Modality, Session as ISession } from '@google/genai';
+import type { LiveSendRealtimeInputParameters } from '@google/genai';
 import { EventEmitter } from 'node:events';
 import TypedEmitter from 'typed-emitter';
 
 import { config } from '../config/index.ts';
 
-import type { GeminiEvents } from '../../types/GeminiEvents.d.ts';
+import type GeminiEvents from '../../types/GeminiEvents.d.ts';
 
 const EvEmitter = EventEmitter as { new(): TypedEmitter<GeminiEvents> };
 
@@ -61,6 +62,11 @@ class Session extends EvEmitter {
 
 	isConnected(): boolean {
 		return this.initialized;
+	};
+
+	sendRealtimeInput(params: LiveSendRealtimeInputParameters): void {
+		if (!this.session) throw new Error('Session is not connected.');
+		this.session.sendRealtimeInput(params);
 	};
 };
 
