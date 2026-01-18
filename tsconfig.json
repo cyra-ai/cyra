@@ -25,7 +25,7 @@
 		"sourceMap": true,
 		"noEmit": true,
 		"typeRoots": [
-			"./types",
+			"types",
 			"./node_modules/@types"
 		],
 		"baseUrl": ".",
@@ -54,7 +54,9 @@
 	},
 	"include": [
 		"src/**/*"
-	],
+,
+"types"
+],
 	"exclude": [
 		"node_modules",
 		"dist"
