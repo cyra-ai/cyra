@@ -1,4 +1,4 @@
-import GeminiSession from './services/Gemini.ts';
+import GeminiSession from './services/Session.ts';
 
 const geminiSession = new GeminiSession();
 
