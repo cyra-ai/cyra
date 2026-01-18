@@ -9,6 +9,8 @@ import type GeminiEvents from '../../types/GeminiEvents.d.ts';
 
 const EvEmitter = EventEmitter as { new(): TypedEmitter<GeminiEvents> };
 
+const sessions = new Set<Session>();
+
 class Session extends EvEmitter {
 	private client: GoogleGenAI;
 	private config: typeof config;
@@ -19,6 +21,7 @@ class Session extends EvEmitter {
 		super();
 		this.config = config;
 		this.client = new GoogleGenAI({ apiKey: this.config.google.apiKey });
+		sessions.add(this);
 	};
 
 	async connect(): Promise<void> {
@@ -71,3 +74,11 @@ class Session extends EvEmitter {
 };
 
 export default Session;
+
+// SIGINT
+process.on('SIGINT', () => {
+	for (const session of sessions)
+		session.disconnect();
+	console.log('All sessions disconnected. Exiting process.');
+	process.exit();
+});

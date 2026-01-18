@@ -1,4 +1,5 @@
 import { WebSocketServer } from 'ws';
+import type WebSocket from 'ws';
 
 import Session from '../services/Session.ts';
 
@@ -6,11 +7,14 @@ import server from './server.ts';
 
 import type Payload from '../../types/Payload.d.ts';
 
+const sockets = new Set<WebSocket>();
+
 const wss = new WebSocketServer({ server, path: '/ws' });
 
 wss.on('connection', async (ws) => {
 	const session = new Session();
 	await session.connect();
+	sockets.add(ws);
 	console.log('WebSocket client connected and session established.');
 
 	ws.on('message', (message) => {
@@ -34,3 +38,11 @@ wss.on('connection', async (ws) => {
 });
 
 export default wss;
+
+// SIGINT
+process.on('SIGINT', () => {
+	for (const ws of sockets)
+		ws.close();
+	console.log('WebSocket server closed. Exiting process.');
+	process.exit();
+});
