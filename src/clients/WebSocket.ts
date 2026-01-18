@@ -38,7 +38,14 @@ wss.on('connection', async (ws) => {
 	});
 
 	session.on('message', (data) => {
-		ws.send(JSON.stringify(data));
+		for (const part of data.serverContent?.modelTurn?.parts || [])
+			if (part.inlineData?.data && part.inlineData?.mimeType?.startsWith('audio/'))
+				ws.send(JSON.stringify({
+					type: 'audio',
+					payload: {
+						data: part.inlineData.data
+					}
+				}));
 	});
 });
 
