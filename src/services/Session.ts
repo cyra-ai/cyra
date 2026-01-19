@@ -16,7 +16,7 @@ const sessions = new Set<Session>();
 class Session extends EvEmitter {
 	private client: GoogleGenAI;
 	private config: typeof config;
-	private initialized: boolean = false;
+	private connected: boolean = false;
 	private session?: ISession;
 
 	constructor() {
@@ -27,7 +27,7 @@ class Session extends EvEmitter {
 	};
 
 	async connect(): Promise<void> {
-		if (this.initialized) return;
+		if (this.connected) return;
 		if (this.session) this.disconnect();
 
 		// Wait for setupComplete before declaring the session ready
@@ -42,7 +42,7 @@ class Session extends EvEmitter {
 						if (data.setupComplete) resolve();
 					},
 					onclose: (e) => {
-						this.initialized = false;
+						this.connected = false;
 						this.emit('close', e);
 					},
 					onerror: (err) => {
@@ -52,7 +52,7 @@ class Session extends EvEmitter {
 				}
 			});
 		});
-		this.initialized = true;
+		this.connected = true;
 		this.emit('ready');
 	};
 
@@ -60,12 +60,12 @@ class Session extends EvEmitter {
 		if (this.session) {
 			this.session.close();
 			this.session = undefined;
-			this.initialized = false;
+			this.connected = false;
 		};
 	};
 
 	isConnected(): boolean {
-		return this.initialized;
+		return this.connected;
 	};
 
 	sendRealtimeInput(params: LiveSendRealtimeInputParameters): void {

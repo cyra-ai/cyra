@@ -17,55 +17,62 @@ wss.on('connection', async (ws) => {
 	logger.info('WebSocket client connected.');
 	const session = new Session();
 
-	ws.on('message', (message) => {
-		try {
-			const data: Payload = JSON.parse(message.toString());
-			if (data.type === 'audio' && data.payload?.audio)
-				session.sendRealtimeInput({
-					audio: {
-						data: data.payload.audio,
-						mimeType: 'audio/pcm'
-					}
-				});
-			else if (data.type === 'text' && data.payload?.text)
-				session.sendRealtimeInput({
-					text: data.payload.text
-				});
-			else
-				logger.warn(`Unknown payload type received: ${data.type}`);
-		} catch (err) {
-			logger.error('Error processing WebSocket message:', err);
-		};
-	});
-
-	session.on('message', (data) => {
-		for (const part of data.serverContent?.modelTurn?.parts || [])
-			if (part.inlineData?.data && part.inlineData?.mimeType?.startsWith('audio/'))
-				ws.send(JSON.stringify({
-					type: 'audio',
-					payload: {
-						audio: part.inlineData.data
-					}
-				}));
-	});
 	session.on('ready', () => {
-		console.log('Session is ready, sending ready status to client.');
+		logger.info('Session is ready to receive messages.');
 		ws.send(JSON.stringify({
 			type: 'status',
 			payload: {
 				status: 'ready'
 			}
-		}));
+		} as Payload));
 	});
 
-	ws.on('close', () => {
-		sockets.delete(ws);
-		session.disconnect();
-		logger.info('WebSocket client disconnected.');
+	session.on('message', (message) => {
+		for (const part of message.serverContent?.modelTurn?.parts || [])
+			if (part.inlineData?.data && part.inlineData.mimeType?.startsWith('audio/'))
+				ws.send(JSON.stringify({
+					type: 'audio',
+					payload: {
+						audio: part.inlineData.data
+					}
+				} as Payload));
 	});
 
-	ws.on('error', (err) => {
-		logger.error('WebSocket error:', err);
+	ws.on('message', async (data) => {
+		if (!session.isConnected()) return;
+
+		const message: Payload = (() => {
+			try {
+				return JSON.parse(data.toString());
+			} catch (err) {
+				ws.send(JSON.stringify({
+					type: 'error',
+					payload: {
+						code: 400,
+						message: `Invalid message format received. ${(err as Error).message}`
+					}
+				} as Payload));
+				logger.error('Failed to parse incoming WebSocket message:', err);
+				return null;
+			};
+		})();
+		if (!message) return;
+
+		switch (message.type) {
+		case 'text':
+			session.sendRealtimeInput({
+				text: message.payload.text
+			});
+			break;
+		case 'audio':
+			session.sendRealtimeInput({
+				audio: {
+					data: message.payload.audio,
+					mimeType: 'audio/pcm;rate=16000'
+				}
+			});
+			break;
+		};
 	});
 
 	await session.connect();

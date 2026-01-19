@@ -1,7 +1,15 @@
 type Status = {
 	type: 'status',
 	payload: {
-		status: 'ready' | 'processing' | 'error';
+		status: 'ready' | 'processing';
+	}
+};
+
+type Error = {
+	type: 'error',
+	payload: {
+		code: number;
+		message: string;
 	}
 };
 
@@ -19,6 +27,6 @@ type Text = {
 	};
 };
 
-type Payload = Status | Audio | Text;
+type Payload = Status | Error | Audio | Text;
 
 export default Payload;
