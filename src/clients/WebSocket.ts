@@ -14,10 +14,8 @@ const sockets = new Set<WebSocket>();
 const wss = new WebSocketServer({ server, path: '/ws' });
 
 wss.on('connection', async (ws) => {
-	const session = new Session();
-	await session.connect();
-	sockets.add(ws);
 	logger.info('WebSocket client connected.');
+	const session = new Session();
 
 	ws.on('message', (message) => {
 		try {
@@ -46,9 +44,18 @@ wss.on('connection', async (ws) => {
 				ws.send(JSON.stringify({
 					type: 'audio',
 					payload: {
-						data: part.inlineData.data
+						audio: part.inlineData.data
 					}
 				}));
+	});
+	session.on('ready', () => {
+		console.log('Session is ready, sending ready status to client.');
+		ws.send(JSON.stringify({
+			type: 'status',
+			payload: {
+				status: 'ready'
+			}
+		}));
 	});
 
 	ws.on('close', () => {
@@ -60,6 +67,10 @@ wss.on('connection', async (ws) => {
 	ws.on('error', (err) => {
 		logger.error('WebSocket error:', err);
 	});
+
+	await session.connect();
+	logger.info('Gemini session connected for WebSocket client.');
+	sockets.add(ws);
 });
 
 export default wss;

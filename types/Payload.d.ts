@@ -1,3 +1,10 @@
+type Status = {
+	type: 'status',
+	payload: {
+		status: 'ready' | 'processing' | 'error';
+	}
+};
+
 type Audio = {
 	type: 'audio';
 	payload: {
@@ -12,6 +19,6 @@ type Text = {
 	};
 };
 
-type Payload = Audio | Text;
+type Payload = Status | Audio | Text;
 
 export default Payload;
