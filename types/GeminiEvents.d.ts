@@ -5,7 +5,6 @@ type GeminiEvents = {
 	message: (data: LiveServerMessage) => void;
 	close: (e: CloseEvent) => void;
 	error: (err: ErrorEvent) => void;
-	[key: string]: (...args: any[]) => void;
 };
 
 export default GeminiEvents;
