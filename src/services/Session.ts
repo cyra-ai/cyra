@@ -3,6 +3,8 @@ import type { LiveSendRealtimeInputParameters } from '@google/genai';
 import { EventEmitter } from 'node:events';
 import TypedEmitter from 'typed-emitter';
 
+import logger from '../utils/logger.ts';
+
 import { config } from '../config/index.ts';
 
 import type GeminiEvents from '../../types/GeminiEvents.d.ts';
@@ -37,7 +39,6 @@ class Session extends EvEmitter {
 				callbacks: {
 					onmessage: (data) => {
 						this.emit('message', data);
-						console.log('Gemini session message received:', data);
 						if (data.setupComplete) resolve();
 					},
 					onclose: (e) => {
@@ -45,7 +46,7 @@ class Session extends EvEmitter {
 						this.emit('close', e);
 					},
 					onerror: (err) => {
-						console.error('Gemini session error:', err);
+						logger.error('Session error:', err);
 						this.emit('error', err);
 					}
 				}
@@ -79,6 +80,6 @@ export default Session;
 process.on('SIGINT', () => {
 	for (const session of sessions)
 		session.disconnect();
-	console.log('All sessions disconnected. Exiting process.');
+	logger.info('All sessions disconnected. Exiting process.');
 	process.exit();
 });

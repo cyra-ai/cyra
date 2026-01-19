@@ -46,7 +46,7 @@ const getColorByIntensity = (baseColor: string, intensity: ColorIntensity = 'nor
 	return colors[baseColor]?.[intensity] || chalk.white;
 };
 
-export const logger = {
+const logger = {
 	// ============ BASIC LOGGING WITH INTENSITY ============
 	log: (message: string, intensity?: ColorIntensity | any, ...args: any[]): void => {
 		const actualIntensity = typeof intensity === 'string' && ['dim', 'normal', 'bright'].includes(intensity) ? intensity : 'normal';
@@ -428,3 +428,6 @@ export const logger = {
 		console.log(message, ...args);
 	}
 };
+
+
+export default logger;

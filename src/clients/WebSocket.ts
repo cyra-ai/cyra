@@ -1,6 +1,8 @@
 import { WebSocketServer } from 'ws';
 import type WebSocket from 'ws';
 
+import logger from '../utils/logger.ts';
+
 import Session from '../services/Session.ts';
 
 import server from './server.ts';
@@ -15,25 +17,26 @@ wss.on('connection', async (ws) => {
 	const session = new Session();
 	await session.connect();
 	sockets.add(ws);
-	console.log('WebSocket client connected and session established.');
+	logger.info('WebSocket client connected.');
 
 	ws.on('message', (message) => {
 		try {
 			const data: Payload = JSON.parse(message.toString());
-			switch (data.type) {
-			case 'audio':
+			if (data.type === 'audio' && data.payload?.audio)
 				session.sendRealtimeInput({
 					audio: {
-						data: data.payload.data,
+						data: data.payload.audio,
 						mimeType: 'audio/pcm'
 					}
 				});
-				break;
-			default:
-				console.warn('Unknown payload type received:', data.type);
-			};
+			else if (data.type === 'text' && data.payload?.text)
+				session.sendRealtimeInput({
+					text: data.payload.text
+				});
+			else
+				logger.warn(`Unknown payload type received: ${data.type}`);
 		} catch (err) {
-			console.error('Error processing WebSocket message:', err);
+			logger.error('Error processing WebSocket message:', err);
 		};
 	});
 
@@ -55,6 +58,6 @@ export default wss;
 process.on('SIGINT', () => {
 	for (const ws of sockets)
 		ws.close();
-	console.log('WebSocket server closed. Exiting process.');
+	logger.info('WebSocket server closed. Exiting process.');
 	process.exit();
 });

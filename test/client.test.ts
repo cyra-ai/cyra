@@ -11,7 +11,7 @@ const micInstance = mic({
 	channels: '1',
 	debug: false,
 	exitOnSilence: 6,
-	device: 'plughw:2,0',
+	device: 'plughw:2,0'
 });
 const micInputStream = micInstance.getAudioStream();
 
@@ -28,8 +28,8 @@ ws.on('open', () => {
 
 ws.on('message', (data) => {
 	const message: Payload = JSON.parse(data.toString());
-	if (message.type === 'audio' && message.payload?.data) {
-		const audioBuffer = Buffer.from(message.payload.data, 'base64');
+	if (message.type === 'audio' && message.payload?.audio) {
+		const audioBuffer = Buffer.from(message.payload.audio, 'base64');
 		speakerInstance.write(audioBuffer);
 	};
 });
@@ -39,7 +39,7 @@ micInputStream.on('data', (data: Buffer) => {
 	const payload: Payload = {
 		type: 'audio',
 		payload: {
-			data: audioBase64
+			audio: audioBase64
 		}
 	};
 	ws.send(JSON.stringify(payload));

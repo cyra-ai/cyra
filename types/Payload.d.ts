@@ -1,10 +1,17 @@
 type Audio = {
 	type: 'audio';
 	payload: {
-		data: string; // Base64-encoded audio data
+		audio: string; // Base64-encoded audio data
 	};
 };
 
-type Payload = Audio;
+type Text = {
+	type: 'text';
+	payload: {
+		text: string; // Text data
+	};
+};
+
+type Payload = Audio | Text;
 
 export default Payload;
