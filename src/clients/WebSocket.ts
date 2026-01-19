@@ -50,6 +50,16 @@ wss.on('connection', async (ws) => {
 					}
 				}));
 	});
+
+	ws.on('close', () => {
+		sockets.delete(ws);
+		session.disconnect();
+		logger.info('WebSocket client disconnected.');
+	});
+
+	ws.on('error', (err) => {
+		logger.error('WebSocket error:', err);
+	});
 });
 
 export default wss;
