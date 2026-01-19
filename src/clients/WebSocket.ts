@@ -28,7 +28,7 @@ wss.on('connection', async (ws) => {
 	});
 
 	session.on('message', (message) => {
-		for (const part of message.serverContent?.modelTurn?.parts || [])
+		for (const part of message.serverContent?.modelTurn?.parts || []) {
 			if (part.inlineData?.data && part.inlineData.mimeType?.startsWith('audio/'))
 				ws.send(JSON.stringify({
 					type: 'audio',
@@ -36,6 +36,21 @@ wss.on('connection', async (ws) => {
 						audio: part.inlineData.data
 					}
 				} as Payload));
+			if (part.thought)
+				ws.send(JSON.stringify({
+					type: 'thought',
+					payload: {
+						thought: part.text
+					}
+				} as Payload));
+			else if (part.text)
+				ws.send(JSON.stringify({
+					type: 'text',
+					payload: {
+						text: part.text
+					}
+				} as Payload));
+		};
 	});
 
 	ws.on('message', async (data) => {

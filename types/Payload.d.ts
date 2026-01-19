@@ -27,6 +27,13 @@ type Text = {
 	};
 };
 
-type Payload = Status | Error | Audio | Text;
+type Thought = {
+	type: 'thought';
+	payload: {
+		thought: string; // Thought data
+	};
+};
+
+type Payload = Status | Error | Audio | Text | Thought;
 
 export default Payload;
