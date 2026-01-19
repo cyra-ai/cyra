@@ -28,7 +28,7 @@ ws.on('open', () => {
 
 ws.on('message', (data) => {
 	const message: Payload = JSON.parse(data.toString());
-	console.log(message);
+
 	if (message.type === 'audio' && message.payload?.audio) {
 		const audioBuffer = Buffer.from(message.payload.audio, 'base64');
 		speakerInstance.write(audioBuffer);
@@ -36,15 +36,12 @@ ws.on('message', (data) => {
 
 	if (message.type === 'status')
 		if (message.payload.status === 'ready')
-			setTimeout(() => {
-				console.log('Sending initial text input: Hello');
-				ws.send(JSON.stringify({
-					type: 'text',
-					payload: {
-						text: 'Hello'
-					}
-				}));
-			}, 1000);
+			ws.send(JSON.stringify({
+				type: 'text',
+				payload: {
+					text: 'Hello'
+				}
+			} as Payload));
 });
 
 micInputStream.on('data', (data: Buffer) => {
