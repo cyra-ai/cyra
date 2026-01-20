@@ -15,7 +15,6 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 
 wss.on('connection', async (ws, req) => {
 	logger.info('WebSocket client connected.');
-	console.log(req.headers);
 
 	const apiKey = req.headers['api_key'] as string | undefined;
 	const model = req.headers['model'] as string | undefined;
