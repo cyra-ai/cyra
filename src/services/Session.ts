@@ -1,6 +1,8 @@
 import { GoogleGenAI, Modality, Session as ISession } from '@google/genai';
 import type { LiveSendRealtimeInputParameters } from '@google/genai';
 import { EventEmitter } from 'node:events';
+import fs from 'node:fs';
+import path from 'node:path';
 import TypedEmitter from 'typed-emitter';
 
 import logger from '../utils/logger.ts';
@@ -36,6 +38,16 @@ class Session extends EvEmitter {
 		if (this.connected) return;
 		if (this.session) this.disconnect();
 
+		// Load the system prompt from file
+		const systemPromptPath = path.join(
+			process.cwd(),
+			'prompts',
+			'system_prompt.md'
+		);
+		const systemPrompt = fs.existsSync(systemPromptPath)
+			? fs.readFileSync(systemPromptPath, 'utf-8')
+			: 'You are a helpful AI assistant.';
+
 		// Wait for setupComplete before declaring the session ready
 		// eslint-disable-next-line no-async-promise-executor
 		await new Promise<void>(async (resolve) => {
@@ -45,7 +57,12 @@ class Session extends EvEmitter {
 					responseModalities: [Modality.AUDIO],
 					inputAudioTranscription: {},
 					outputAudioTranscription: {},
-					thinkingConfig: { includeThoughts: true }
+					thinkingConfig: { includeThoughts: true },
+					systemInstruction: {
+						parts: [
+							{ text: systemPrompt }
+						]
+					}
 				},
 				callbacks: {
 					onmessage: (data) => {
