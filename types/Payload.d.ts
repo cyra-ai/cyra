@@ -1,57 +1,23 @@
-type Status = {
-	type: 'status',
-	payload: {
-		status: 'ready' | 'processing';
-	}
-};
-
-type Error = {
-	type: 'error',
-	payload: {
-		code: number;
-		message: string;
-	}
-};
-
-type Audio = {
-	type: 'audio';
-	payload: {
-		audio: string; // Base64-encoded audio data
-	};
-};
-
-type Text = {
-	type: 'text';
-	payload: {
-		text: string; // Text data
-	};
-};
-
-type Thought = {
-	type: 'thought';
-	payload: {
-		thought: string; // Thought data
-	};
-};
-
-type Transcription = {
-	type: 'transcription';
-	payload: {
-		transcription: string; // Transcription text
+export interface PayloadMap {
+	status: { status: 'ready' | 'processing' };
+	error: { code: number; message: string };
+	audio: { audio: string };
+	text: { text: string };
+	thought: { thought: string };
+	transcription: {
+		transcription: string;
 		type: 'input' | 'output';
 		finished?: boolean;
 	};
-};
+	turn_complete: Record<string, never>;
+	interrupted: Record<string, never>;
+}
 
-type TurnComplete = {
-	type: 'turn_complete';
-	payload: {};
-};
+type Payload<K extends keyof PayloadMap = keyof PayloadMap> = {
+	[T in K]: {
+		type: T;
+		payload: PayloadMap[T];
+	};
+}[K];
 
-type Interrupted = {
-	type: 'interrupted';
-	payload: {};
-};
-
-type Payload = Status | Error | Audio | Text | Thought | Transcription | TurnComplete | Interrupted;
 export default Payload;
