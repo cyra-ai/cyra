@@ -56,14 +56,14 @@ wss.on('connection', async (ws, req) => {
 						audio: part.inlineData.data
 					}
 				} as Payload));
-			if (part.thought)
+			if (part.text && part.thought)
 				ws.send(JSON.stringify({
 					type: 'thought',
 					payload: {
 						thought: part.text
 					}
 				} as Payload));
-			else if (part.text)
+			if (part.text && !part.thought)
 				ws.send(JSON.stringify({
 					type: 'text',
 					payload: {
@@ -71,6 +71,36 @@ wss.on('connection', async (ws, req) => {
 					}
 				} as Payload));
 		};
+
+		if (message.serverContent?.outputTranscription)
+			ws.send(JSON.stringify({
+				type: 'transcription',
+				payload: {
+					transcription: message.serverContent.outputTranscription.text,
+					finished: message.serverContent.outputTranscription.finished,
+					type: 'output'
+				}
+			} as Payload));
+		if (message.serverContent?.inputTranscription)
+			ws.send(JSON.stringify({
+				type: 'transcription',
+				payload: {
+					transcription: message.serverContent.inputTranscription.text,
+					finished: message.serverContent.inputTranscription.finished,
+					type: 'input'
+				}
+			} as Payload));
+
+		if (message.serverContent?.turnComplete)
+			ws.send(JSON.stringify({
+				type: 'turn_complete',
+				payload: {}
+			} as Payload));
+		if (message.serverContent?.interrupted)
+			ws.send(JSON.stringify({
+				type: 'interrupted',
+				payload: {}
+			} as Payload));
 	});
 
 	ws.on('message', async (data) => {

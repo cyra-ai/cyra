@@ -34,6 +34,24 @@ type Thought = {
 	};
 };
 
-type Payload = Status | Error | Audio | Text | Thought;
+type Transcription = {
+	type: 'transcription';
+	payload: {
+		transcription: string; // Transcription text
+		type: 'input' | 'output';
+		finished?: boolean;
+	};
+};
 
+type TurnComplete = {
+	type: 'turn_complete';
+	payload: {};
+};
+
+type Interrupted = {
+	type: 'interrupted';
+	payload: {};
+};
+
+type Payload = Status | Error | Audio | Text | Thought | Transcription | TurnComplete | Interrupted;
 export default Payload;
