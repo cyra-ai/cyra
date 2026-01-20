@@ -5,8 +5,6 @@ import TypedEmitter from 'typed-emitter';
 
 import logger from '../utils/logger.ts';
 
-import { config } from '../config/index.ts';
-
 import type GeminiEvents from '../../types/GeminiEvents.d.ts';
 
 const EvEmitter = EventEmitter as { new(): TypedEmitter<GeminiEvents> };
@@ -15,14 +13,22 @@ const sessions = new Set<Session>();
 
 class Session extends EvEmitter {
 	private client: GoogleGenAI;
-	private config: typeof config;
 	private connected: boolean = false;
 	private session?: ISession;
+	private model?: string;
 
-	constructor() {
+	constructor({
+		apiKey,
+		model
+	}: {
+		apiKey?: string;
+		model?: string;
+	}) {
 		super();
-		this.config = config;
-		this.client = new GoogleGenAI({ apiKey: this.config.google.apiKey });
+		this.client = new GoogleGenAI({
+			apiKey: apiKey
+		});
+		this.model = model;
 		sessions.add(this);
 	};
 
@@ -34,7 +40,7 @@ class Session extends EvEmitter {
 		// eslint-disable-next-line no-async-promise-executor
 		await new Promise<void>(async (resolve) => {
 			this.session = await this.client.live.connect({
-				model: this.config.google.model,
+				model: this.model || 'gemini-2.5-flash-native-audio-preview-12-2025',
 				config: { responseModalities: [Modality.AUDIO] },
 				callbacks: {
 					onmessage: (data) => {

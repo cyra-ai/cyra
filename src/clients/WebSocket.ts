@@ -13,9 +13,29 @@ const sockets = new Set<WebSocket>();
 
 const wss = new WebSocketServer({ server, path: '/ws' });
 
-wss.on('connection', async (ws) => {
+wss.on('connection', async (ws, req) => {
 	logger.info('WebSocket client connected.');
-	const session = new Session();
+	console.log(req.headers);
+
+	const apiKey = req.headers['api_key'] as string | undefined;
+	const model = req.headers['model'] as string | undefined;
+	if (!apiKey || apiKey.trim() === '') {
+		ws.send(JSON.stringify({
+			type: 'error',
+			payload: {
+				code: 401,
+				message: 'Missing or invalid API key in "api_key" header.'
+			}
+		} as Payload));
+		logger.warn('WebSocket connection rejected due to missing API key.');
+		req.destroy(new Error('Missing API key'));
+		return;
+	};
+
+	const session = new Session({
+		apiKey,
+		model
+	});
 
 	session.on('ready', () => {
 		logger.info('Session is ready to receive messages.');

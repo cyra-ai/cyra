@@ -1,3 +1,5 @@
+await import('dotenv').then(dotenv => dotenv.config());
+
 import { WebSocket } from 'ws';
 
 import speaker from 'speaker';
@@ -5,7 +7,11 @@ import mic from 'mic';
 
 import type Payload from '../types/Payload.d.ts';
 
-const ws = new WebSocket('ws://localhost:3000/ws');
+const ws = new WebSocket('ws://localhost:3000/ws', {
+	headers: {
+		api_key: process.env.GOOGLE_API_KEY || ''
+	}
+});
 const micInstance = mic({
 	rate: '16000',
 	channels: '1',
