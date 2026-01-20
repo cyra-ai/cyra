@@ -11,7 +11,7 @@ export interface PayloadMap {
 	};
 	turn_complete: Record<string, never>;
 	interrupted: Record<string, never>;
-}
+};
 
 type Payload<K extends keyof PayloadMap = keyof PayloadMap> = {
 	[T in K]: {
