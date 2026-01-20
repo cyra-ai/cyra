@@ -32,6 +32,7 @@ ws.on('open', () => {
 	micInstance.start();
 });
 
+let previousSpeaker: 'input' | 'output' | null = null;
 ws.on('message', (data) => {
 	const message: Payload = JSON.parse(data.toString());
 
@@ -48,6 +49,28 @@ ws.on('message', (data) => {
 					text: 'Hello'
 				}
 			} as Payload));
+
+	if (message.type === 'error') {
+		console.error(`Error ${message.payload.code}: ${message.payload.message}`);
+		micInstance.stop();
+		speakerInstance.end();
+		ws.close();
+	};
+
+	if (message.type === 'transcription') {
+		if (message.payload.type === 'input') {
+			if (previousSpeaker !== 'input') {
+				process.stdout.write('\nUser: ');
+				previousSpeaker = 'input';
+			};
+		} else if (message.payload.type === 'output') {
+			if (previousSpeaker !== 'output') {
+				process.stdout.write('\nAI: ');
+				previousSpeaker = 'output';
+			};
+		};
+		process.stdout.write(message.payload.transcription + (message.payload.finished ? '\n' : ''));
+	};
 });
 
 micInputStream.on('data', (data: Buffer) => {
@@ -60,7 +83,7 @@ micInputStream.on('data', (data: Buffer) => {
 	};
 	ws.send(JSON.stringify(payload));
 	const volume = data.reduce((acc, val) => acc + Math.abs(val), 0) / data.length;
-	process.stdout.write(`\r[${'='.repeat(Math.min(Math.floor(volume / 10), 20)).padEnd(20)}]`);
+	// process.stdout.write(`\r[${'='.repeat(Math.min(Math.floor(volume / 10), 20)).padEnd(20)}]`);
 });
 
 micInputStream.on('error', (err: Error) => {

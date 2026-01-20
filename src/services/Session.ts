@@ -41,7 +41,12 @@ class Session extends EvEmitter {
 		await new Promise<void>(async (resolve) => {
 			this.session = await this.client.live.connect({
 				model: this.model || 'gemini-2.5-flash-native-audio-preview-12-2025',
-				config: { responseModalities: [Modality.AUDIO] },
+				config: {
+					responseModalities: [Modality.AUDIO],
+					inputAudioTranscription: {},
+					outputAudioTranscription: {},
+					thinkingConfig: { includeThoughts: true }
+				},
 				callbacks: {
 					onmessage: (data) => {
 						this.emit('message', data);
