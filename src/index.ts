@@ -1,6 +1,6 @@
-import server from './clients/server.ts';
+import server from './servers/server.ts';
 import { config } from './config/index.ts';
-import './clients/WebSocket.ts';
+import './servers/WebSocket.ts';
 
 import logger from './utils/logger.ts';
 
