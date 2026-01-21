@@ -76,7 +76,11 @@ class Session extends EvEmitter {
 
 						// Handle function calls
 						for (const functionCall of data.toolCall?.functionCalls || []) {
-							logger.info('Executing tool:', functionCall.name, 'with args:', functionCall.args);
+							const args = Object.keys(functionCall.args || {}).length > 0
+								? JSON.stringify(functionCall.args, null, 2)
+								: 'none';
+							logger.status('pending', `Executing tool: ${functionCall.name}`);
+							logger.label('  Arguments', args, 'dim');
 
 							try {
 								// Find the correct MCP client for this tool
@@ -103,10 +107,11 @@ class Session extends EvEmitter {
 											response: { output: result }
 										}]
 									});
-									logger.info('Tool response sent for:', functionCall.name);
+									logger.status('success', `Tool completed: ${functionCall.name}`);
 								};
 							} catch (error) {
-								logger.error('Error executing tool:', functionCall.name, error);
+								logger.status('error', `Tool failed: ${functionCall.name}`);
+								logger.error(`  ${(error as Error).message || String(error)}`, 'dim');
 								// Send error response
 								if (this.session)
 									this.session.sendToolResponse({
@@ -126,14 +131,15 @@ class Session extends EvEmitter {
 						this.emit('close', e);
 					},
 					onerror: (err) => {
-						logger.error('Session error:', err);
+						logger.status('error', 'Gemini session error');
+						logger.error(`  ${err.message || String(err)}`, 'dim');
 						this.emit('error', err);
 					}
 				}
 			});
 		});
 		this.connected = true;
-		this.emit('ready');
+		logger.success('Gemini session ready');
 	};
 
 	disconnect(): void {
@@ -158,8 +164,11 @@ export default Session;
 
 // SIGINT
 process.on('SIGINT', () => {
+	logger.warn('\nReceived SIGINT signal');
 	for (const session of sessions)
 		session.disconnect();
-	logger.info('All sessions disconnected. Exiting process.');
+	logger.hierarchy.report('success', 'Graceful Shutdown', [
+		`${sessions.size} session(s) disconnected`
+	], 'Process exiting...');
 	process.exit();
 });

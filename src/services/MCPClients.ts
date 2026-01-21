@@ -7,14 +7,17 @@ import mcp from '../config/mcp.ts';
 
 const clients: Client[] = [];
 
-logger.info('Connecting to MCP servers...');
+logger.subtitle('Initializing MCP Servers');
 
 await Promise.all(mcp.map(async (serverConfig) => {
 	const params = new StdioClientTransport(serverConfig);
 	const client = new Client({ name: 'MCP Client', version: '1.0.0' });
 	await client.connect(params);
 	clients.push(client);
-	logger.info('Connected to MCP server with command:', serverConfig.command, serverConfig.args?.join(' '));
+	const serverName = serverConfig.args?.[1] || serverConfig.args?.[0] || serverConfig.command;
+	logger.success(`Connected to MCP: ${serverName}`);
 }));
+
+logger.hierarchy.report('success', 'MCP Initialization Complete', undefined, `${clients.length} server(s) ready`);
 
 export default clients;

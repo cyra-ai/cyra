@@ -14,7 +14,7 @@ const sockets = new Set<WebSocket>();
 const wss = new WebSocketServer({ server, path: '/ws' });
 
 wss.on('connection', async (ws, req) => {
-	logger.info('WebSocket client connected.');
+	logger.status('success', 'WebSocket client connected');
 
 	const apiKey = req.headers['api_key'] as string | undefined;
 	const model = req.headers['model'] as string | undefined;
@@ -26,7 +26,7 @@ wss.on('connection', async (ws, req) => {
 				message: 'Missing or invalid API key in "api_key" header.'
 			}
 		} as Payload));
-		logger.warn('WebSocket connection rejected due to missing API key.');
+		logger.status('error', 'Connection rejected: Missing API key');
 		req.destroy(new Error('Missing API key'));
 		return;
 	};
@@ -37,7 +37,7 @@ wss.on('connection', async (ws, req) => {
 	});
 
 	session.on('ready', () => {
-		logger.info('Session is ready to receive messages.');
+		logger.success('Session ready for client interaction');
 		ws.send(JSON.stringify({
 			type: 'status',
 			payload: {
@@ -116,7 +116,8 @@ wss.on('connection', async (ws, req) => {
 						message: `Invalid message format received. ${(err as Error).message}`
 					}
 				} as Payload));
-				logger.error('Failed to parse incoming WebSocket message:', err);
+				logger.status('error', 'Failed to parse WebSocket message');
+				logger.error(`  ${(err as Error).message}`, 'dim');
 				return null;
 			};
 		})();
@@ -140,7 +141,6 @@ wss.on('connection', async (ws, req) => {
 	});
 
 	await session.connect();
-	logger.info('Gemini session connected for WebSocket client.');
 	sockets.add(ws);
 });
 
@@ -148,8 +148,9 @@ export default wss;
 
 // SIGINT
 process.on('SIGINT', () => {
+	logger.warn('\nClosing WebSocket connections...');
 	for (const ws of sockets)
 		ws.close();
-	logger.info('WebSocket server closed. Exiting process.');
+	logger.success(`${sockets.size} WebSocket connection(s) closed`);
 	process.exit();
 });
