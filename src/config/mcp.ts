@@ -1,3 +1,4 @@
+import path from 'path';
 const config = [
 	{
 		command: 'npx',
@@ -11,7 +12,7 @@ const config = [
 		args: [
 			'-y',
 			'@modelcontextprotocol/server-filesystem',
-			process.cwd()
+			path.join(process.cwd(), 'sandbox')
 		]
 	}
 ];
