@@ -6,4 +6,5 @@ dist/
 .env.local
 tmp/
 data/*.db*
-sandbox/*!sandbox/.gitkeep
+sandbox/*
+!sandbox/.gitkeep
