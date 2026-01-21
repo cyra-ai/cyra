@@ -1,11 +1,12 @@
-import { GoogleGenAI, Modality, Session as ISession } from '@google/genai';
-import type { LiveSendRealtimeInputParameters } from '@google/genai';
+import { GoogleGenAI, Modality, mcpToTool, Session as ISession } from '@google/genai';
+import type { CallableTool, LiveSendRealtimeInputParameters } from '@google/genai';
 import { EventEmitter } from 'node:events';
 import fs from 'node:fs';
 import path from 'node:path';
 import TypedEmitter from 'typed-emitter';
 
 import logger from '../utils/logger.ts';
+import MCPClients from './MCPClients.ts';
 
 import type GeminiEvents from '../../types/GeminiEvents.d.ts';
 
@@ -48,6 +49,10 @@ class Session extends EvEmitter {
 			? fs.readFileSync(systemPromptPath, 'utf-8')
 			: 'You are a helpful AI assistant.';
 
+		const tools: CallableTool[] = [];
+		for (const client of MCPClients)
+			tools.push(mcpToTool(client));
+
 		// Wait for setupComplete before declaring the session ready
 		// eslint-disable-next-line no-async-promise-executor
 		await new Promise<void>(async (resolve) => {
@@ -62,11 +67,58 @@ class Session extends EvEmitter {
 						parts: [
 							{ text: systemPrompt }
 						]
-					}
+					},
+					tools: tools
 				},
 				callbacks: {
-					onmessage: (data) => {
+					onmessage: async (data) => {
 						this.emit('message', data);
+
+						// Handle function calls
+						for (const functionCall of data.toolCall?.functionCalls || []) {
+							logger.info('Executing tool:', functionCall.name, 'with args:', functionCall.args);
+
+							try {
+								// Find the correct MCP client for this tool
+								let result: unknown;
+								for (const client of MCPClients) {
+									const tools = await client.listTools();
+									if (tools.tools.some(t => t.name === functionCall.name)) {
+										// Execute the tool
+										const response = await client.callTool({
+											name: functionCall.name || '',
+											arguments: functionCall.args
+										});
+										result = response.content;
+										break;
+									};
+								};
+
+								// Send the result back to Gemini
+								if (this.session && result !== undefined) {
+									this.session.sendToolResponse({
+										functionResponses: [{
+											id: functionCall.id,
+											name: functionCall.name,
+											response: { output: result }
+										}]
+									});
+									logger.info('Tool response sent for:', functionCall.name);
+								};
+							} catch (error) {
+								logger.error('Error executing tool:', functionCall.name, error);
+								// Send error response
+								if (this.session)
+									this.session.sendToolResponse({
+										functionResponses: [{
+											id: functionCall.id,
+											name: functionCall.name,
+											response: { error: String(error) }
+										}]
+									});
+							};
+						};
+
 						if (data.setupComplete) resolve();
 					},
 					onclose: (e) => {
