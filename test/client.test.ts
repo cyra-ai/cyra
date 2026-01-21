@@ -3,6 +3,7 @@ await import('dotenv').then(dotenv => dotenv.config());
 import { WebSocket } from 'ws';
 
 import speaker from 'speaker';
+// @ts-ignore
 import mic from 'mic';
 
 import type Payload from '../types/Payload.d.ts';
