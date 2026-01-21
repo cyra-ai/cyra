@@ -58,6 +58,9 @@ ws.on('message', (data) => {
 		ws.close();
 	};
 
+	if (message.type === 'thought')
+		console.log(`\n[Thought]: ${message.payload.thought}\n`);
+
 	if (message.type === 'transcription') {
 		if (message.payload.type === 'input') {
 			if (previousSpeaker !== 'input') {
