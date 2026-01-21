@@ -9,7 +9,8 @@ import type Payload from '../types/Payload.d.ts';
 
 const ws = new WebSocket('ws://localhost:3000/ws', {
 	headers: {
-		api_key: process.env.GOOGLE_API_KEY || ''
+		api_key: process.env.GOOGLE_API_KEY || '',
+		model: process.env.GEMINI_MODEL || 'gemini-2.5-flash-native-audio-preview-12-2025'
 	}
 });
 const micInstance = mic({
