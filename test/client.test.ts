@@ -82,8 +82,8 @@ micInputStream.on('data', (data: Buffer) => {
 		}
 	};
 	ws.send(JSON.stringify(payload));
-	const volume = data.reduce((acc, val) => acc + Math.abs(val), 0) / data.length;
-	process.stdout.write(`\r[${'='.repeat(Math.min(Math.floor(volume / 10), 20)).padEnd(20)}]`);
+	// const volume = data.reduce((acc, val) => acc + Math.abs(val), 0) / data.length;
+	// process.stdout.write(`\r[${'='.repeat(Math.min(Math.floor(volume / 10), 20)).padEnd(20)}]`);
 });
 
 micInputStream.on('error', (err: Error) => {
