@@ -9,12 +9,12 @@ const clients: Client[] = [];
 
 logger.info('Connecting to MCP servers...');
 
-for (const serverConfig of mcp) {
+await Promise.all(mcp.map(async (serverConfig) => {
 	const params = new StdioClientTransport(serverConfig);
 	const client = new Client({ name: 'MCP Client', version: '1.0.0' });
 	await client.connect(params);
 	clients.push(client);
 	logger.info('Connected to MCP server with command:', serverConfig.command, serverConfig.args?.join(' '));
-};
+}));
 
 export default clients;
