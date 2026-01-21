@@ -41,7 +41,7 @@ const config = [
 			'@modelcontextprotocol/server-memory'
 		],
 		env: {
-			MEMORY_FILE_PATH: path.join(process.cwd(), 'sandbox', 'memory.json')
+			MEMORY_FILE_PATH: path.join(process.cwd(), 'sandbox', 'memory.jsonl')
 		}
 	}
 ];
