@@ -29,7 +29,8 @@ class Session extends EvEmitter {
 	}) {
 		super();
 		this.client = new GoogleGenAI({
-			apiKey: apiKey
+			apiKey: apiKey,
+			httpOptions: { apiVersion: 'v1alpha' }
 		});
 		this.model = model;
 		sessions.add(this);
@@ -63,6 +64,8 @@ class Session extends EvEmitter {
 					inputAudioTranscription: {},
 					outputAudioTranscription: {},
 					thinkingConfig: { includeThoughts: true },
+					enableAffectiveDialog: true,
+					proactivity: { proactiveAudio: true },
 					systemInstruction: {
 						parts: [
 							{ text: systemPrompt }
