@@ -194,7 +194,7 @@ const logger = {
 	status: (status: 'pending' | 'success' | 'error' | 'warning', message: string, intensity?: ColorIntensity): void => {
 		const actualIntensity = intensity || 'normal';
 		const icons = {
-			pending: chalk.yellow('⏳'),
+			pending: chalk.yellow('⧗'),
 			success: getColorByIntensity('green', actualIntensity as ColorIntensity)('✓'),
 			error: getColorByIntensity('red', actualIntensity as ColorIntensity)('✗'),
 			warning: getColorByIntensity('yellow', actualIntensity as ColorIntensity)('⚠')
