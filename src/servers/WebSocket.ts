@@ -17,7 +17,6 @@ wss.on('connection', async (ws, req) => {
 	logger.status('success', 'WebSocket client connected');
 
 	const apiKey = req.headers['api_key'] as string | undefined;
-	const model = req.headers['model'] as string | undefined;
 	if (!apiKey || apiKey.trim() === '') {
 		ws.send(JSON.stringify({
 			type: 'error',
@@ -32,8 +31,7 @@ wss.on('connection', async (ws, req) => {
 	};
 
 	const session = new Session({
-		apiKey,
-		model
+		apiKey
 	});
 
 	session.on('ready', () => {

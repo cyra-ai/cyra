@@ -18,21 +18,17 @@ class Session extends EvEmitter {
 	private client: GoogleGenAI;
 	private connected: boolean = false;
 	private session?: ISession;
-	private model?: string;
 
 	constructor({
-		apiKey,
-		model
+		apiKey
 	}: {
 		apiKey?: string;
-		model?: string;
 	}) {
 		super();
 		this.client = new GoogleGenAI({
 			apiKey: apiKey,
 			httpOptions: { apiVersion: 'v1alpha' }
 		});
-		this.model = model;
 		sessions.add(this);
 	};
 
@@ -58,7 +54,7 @@ class Session extends EvEmitter {
 		// eslint-disable-next-line no-async-promise-executor
 		await new Promise<void>(async (resolve) => {
 			this.session = await this.client.live.connect({
-				model: this.model || 'gemini-2.5-flash-native-audio-preview-12-2025',
+				model: 'gemini-2.5-flash-native-audio-preview-12-2025',
 				config: {
 					responseModalities: [Modality.AUDIO],
 					inputAudioTranscription: {},
