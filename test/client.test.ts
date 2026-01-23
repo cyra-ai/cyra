@@ -48,7 +48,7 @@ ws.on('message', (data) => {
 			ws.send(JSON.stringify({
 				type: 'text',
 				payload: {
-					text: 'Introduce yourself in a concise manner.'
+					text: 'Hello! Introduce yourself.'
 				}
 			} as Payload));
 
