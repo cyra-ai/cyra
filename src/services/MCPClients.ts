@@ -15,7 +15,9 @@ await Promise.all(mcp.map(async (serverConfig) => {
 	await client.connect(params);
 	clients.push(client);
 	const serverName = serverConfig.args?.[1] || serverConfig.args?.[0] || serverConfig.command;
+	const tools = (await client.listTools()).tools;
 	logger.success(`Connected to MCP: ${serverName}`);
+	logger.list(tools.map(tool => tool.name), 'Available Tools', 'dim');
 }));
 
 logger.hierarchy.report('success', 'MCP Initialization Complete', undefined, `${clients.length} server(s) ready`);

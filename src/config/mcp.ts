@@ -9,7 +9,7 @@ if (!fs.existsSync(sandboxPath))
 // if memory file doesn't exist, create it
 const memoryFilePath = path.join(process.cwd(), 'sandbox', 'memory.jsonl');
 if (!fs.existsSync(memoryFilePath))
-	fs.writeFileSync(memoryFilePath, JSON.stringify([], null, 2));
+	fs.writeFileSync(memoryFilePath, '');
 
 const config = [
 	{
