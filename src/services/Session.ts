@@ -1,5 +1,5 @@
 import { GoogleGenAI, Modality, mcpToTool, Session as ISession } from '@google/genai';
-import type { CallableTool, LiveSendRealtimeInputParameters } from '@google/genai';
+import type { CallableTool, LiveSendRealtimeInputParameters, LiveServerMessage } from '@google/genai';
 import { EventEmitter } from 'node:events';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -71,62 +71,13 @@ class Session extends EvEmitter {
 				},
 				callbacks: {
 					onmessage: async (data) => {
-						this.emit('message', data);
-
-						// Handle function calls
-						for (const functionCall of data.toolCall?.functionCalls || []) {
-							const args = Object.keys(functionCall.args || {}).length > 0
-								? JSON.stringify(functionCall.args, null, 2)
-								: 'none';
-							logger.status('pending', `Executing tool: ${functionCall.name}`);
-							logger.label('  Arguments', args, 'dim');
-
-							try {
-								// Find the correct MCP client for this tool
-								let result: unknown;
-								for (const client of MCPClients) {
-									const tools = await client.listTools();
-									if (tools.tools.some(t => t.name === functionCall.name)) {
-										// Execute the tool
-										const response = await client.callTool({
-											name: functionCall.name || '',
-											arguments: functionCall.args
-										});
-										result = response.content;
-										break;
-									};
-								};
-
-								// Send the result back to Gemini
-								if (this.session && result !== undefined) {
-									this.session.sendToolResponse({
-										functionResponses: [{
-											id: functionCall.id,
-											name: functionCall.name,
-											response: { output: result }
-										}]
-									});
-									logger.status('success', `Tool completed: ${functionCall.name}`);
-								};
-							} catch (error) {
-								logger.status('error', `Tool failed: ${functionCall.name}`);
-								logger.error(`  ${(error as Error).message || String(error)}`, 'dim');
-								// Send error response
-								if (this.session)
-									this.session.sendToolResponse({
-										functionResponses: [{
-											id: functionCall.id,
-											name: functionCall.name,
-											response: { error: String(error) }
-										}]
-									});
-							};
-						};
-
+						this.handleMessage(data);
 						if (data.setupComplete) resolve();
 					},
 					onclose: (e) => {
 						this.connected = false;
+						logger.status('warning', 'Gemini session closed');
+						logger.label('  Reason', e?.reason || 'No reason provided', 'dim');
 						this.emit('close', e);
 					},
 					onerror: (err) => {
@@ -157,6 +108,60 @@ class Session extends EvEmitter {
 	sendRealtimeInput(params: LiveSendRealtimeInputParameters): void {
 		if (!this.session) throw new Error('Session is not connected.');
 		this.session.sendRealtimeInput(params);
+	};
+
+	private async handleMessage(data: LiveServerMessage): Promise<void> {
+		this.emit('message', data);
+
+		// Handle function calls
+		for (const functionCall of data.toolCall?.functionCalls || []) {
+			const args = Object.keys(functionCall.args || {}).length > 0
+				? JSON.stringify(functionCall.args, null, 2)
+				: 'none';
+			logger.status('pending', `Executing tool: ${functionCall.name}`);
+			logger.label('  Arguments', args, 'dim');
+
+			try {
+				// Find the correct MCP client for this tool
+				let result: unknown;
+				for (const client of MCPClients) {
+					const tools = await client.listTools();
+					if (tools.tools.some(t => t.name === functionCall.name)) {
+						// Execute the tool
+						const response = await client.callTool({
+							name: functionCall.name || '',
+							arguments: functionCall.args
+						});
+						result = response.content;
+						break;
+					};
+				};
+
+				// Send the result back to Gemini
+				if (this.session && result !== undefined) {
+					this.session.sendToolResponse({
+						functionResponses: [{
+							id: functionCall.id,
+							name: functionCall.name,
+							response: { output: result }
+						}]
+					});
+					logger.status('success', `Tool completed: ${functionCall.name}`);
+				};
+			} catch (error) {
+				logger.status('error', `Tool failed: ${functionCall.name}`);
+				logger.error(`  ${(error as Error).message || String(error)}`, 'dim');
+				// Send error response
+				if (this.session)
+					this.session.sendToolResponse({
+						functionResponses: [{
+							id: functionCall.id,
+							name: functionCall.name,
+							response: { error: String(error) }
+						}]
+					});
+			};
+		};
 	};
 };
 
