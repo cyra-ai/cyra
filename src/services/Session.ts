@@ -138,6 +138,7 @@ class Session extends EvEmitter {
 			});
 		});
 		this.connected = true;
+		this.emit('ready');
 		logger.success('Gemini session ready');
 	};
 

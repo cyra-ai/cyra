@@ -138,6 +138,15 @@ wss.on('connection', async (ws, req) => {
 		};
 	});
 
+	ws.on('close', () => {
+		logger.status('warning', 'WebSocket client disconnected');
+		session.disconnect();
+		sockets.delete(ws);
+	});
+	session.on('close', () => {
+		ws.close();
+	});
+
 	await session.connect();
 	sockets.add(ws);
 });
