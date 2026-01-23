@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import type { StdioServerParameters } from '@modelcontextprotocol/sdk/client/stdio.js';
 
 // if sandbox folder doesn't exist, create it
 const sandboxPath = path.join(process.cwd(), 'sandbox');
@@ -11,7 +12,7 @@ const memoryFilePath = path.join(process.cwd(), 'sandbox', 'memory.jsonl');
 if (!fs.existsSync(memoryFilePath))
 	fs.writeFileSync(memoryFilePath, '');
 
-const config = [
+const config: StdioServerParameters[] = [
 	{
 		command: 'npx',
 		args: [
@@ -25,7 +26,8 @@ const config = [
 			'-y',
 			'@modelcontextprotocol/server-filesystem',
 			path.join(process.cwd(), 'sandbox')
-		]
+		],
+		cwd: process.cwd()
 	},
 	{
 		command: 'npx',

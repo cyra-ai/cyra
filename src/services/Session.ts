@@ -77,7 +77,7 @@ class Session extends EvEmitter {
 					onclose: (e) => {
 						this.connected = false;
 						logger.status('warning', 'Gemini session closed');
-						logger.label('  Reason', e?.reason || 'No reason provided', 'dim');
+						logger.label('  Reason', e || 'No reason provided', 'dim');
 						this.emit('close', e);
 					},
 					onerror: (err) => {
