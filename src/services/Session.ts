@@ -8,9 +8,9 @@ import TypedEmitter from 'typed-emitter';
 import logger from '../utils/logger.ts';
 import MCPClients from './MCPClients.ts';
 
-import type GeminiEvents from '../../types/GeminiEvents.d.ts';
+import type SessionEvents from '../../types/SessionEvents.d.ts';
 
-const EvEmitter = EventEmitter as { new(): TypedEmitter<GeminiEvents> };
+const EvEmitter = EventEmitter as { new(): TypedEmitter<SessionEvents> };
 
 const sessions = new Set<Session>();
 

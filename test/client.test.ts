@@ -76,6 +76,13 @@ ws.on('message', (data) => {
 		};
 		process.stdout.write(message.payload.transcription + (message.payload.finished ? '\n' : ''));
 	};
+
+	if (message.type === 'turn_complete')
+		console.log('\n--- Turn Complete ---\n');
+	if (message.type === 'interrupted')
+		console.log('\n--- Interaction Interrupted ---\n');
+
+	if (message.type === 'function_call') { };
 });
 
 micInputStream.on('data', (data: Buffer) => {
