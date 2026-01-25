@@ -67,7 +67,7 @@ class Session extends EvEmitter {
 							{ text: systemPrompt }
 						]
 					},
-					tools: tools
+					tools: [...tools, { googleSearch: {} }]
 				},
 				callbacks: {
 					onmessage: async (data) => {
