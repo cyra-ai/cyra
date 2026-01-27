@@ -7,7 +7,7 @@ import Session from '../services/Session.ts';
 
 import server from './server.ts';
 
-import type Payload from '../../types/Payload.d.ts';
+import type { ServerPayload, ClientPayload } from '../../types/Payload.d.ts';
 
 const sockets = new Set<WebSocket>();
 
@@ -24,7 +24,7 @@ wss.on('connection', async (ws, req) => {
 				code: 401,
 				message: 'Missing or invalid API key in "api_key" header.'
 			}
-		} as Payload));
+		} as ServerPayload));
 		logger.status('error', 'Connection rejected: Missing API key');
 		req.destroy(new Error('Missing API key'));
 		return;
@@ -41,7 +41,7 @@ wss.on('connection', async (ws, req) => {
 			payload: {
 				status: 'ready'
 			}
-		} as Payload));
+		} as ServerPayload));
 	});
 
 	session.on('message', (message) => {
@@ -52,21 +52,21 @@ wss.on('connection', async (ws, req) => {
 					payload: {
 						audio: part.inlineData.data
 					}
-				} as Payload));
+				} as ServerPayload));
 			if (part.text && part.thought)
 				ws.send(JSON.stringify({
 					type: 'thought',
 					payload: {
 						thought: part.text
 					}
-				} as Payload));
+				} as ServerPayload));
 			if (part.text && !part.thought)
 				ws.send(JSON.stringify({
 					type: 'text',
 					payload: {
 						text: part.text
 					}
-				} as Payload));
+				} as ServerPayload));
 		};
 
 		if (message.serverContent?.outputTranscription)
@@ -77,7 +77,7 @@ wss.on('connection', async (ws, req) => {
 					finished: message.serverContent.outputTranscription.finished,
 					type: 'output'
 				}
-			} as Payload));
+			} as ServerPayload));
 		if (message.serverContent?.inputTranscription)
 			ws.send(JSON.stringify({
 				type: 'transcription',
@@ -86,24 +86,24 @@ wss.on('connection', async (ws, req) => {
 					finished: message.serverContent.inputTranscription.finished,
 					type: 'input'
 				}
-			} as Payload));
+			} as ServerPayload));
 
 		if (message.serverContent?.turnComplete)
 			ws.send(JSON.stringify({
 				type: 'turn_complete',
 				payload: {}
-			} as Payload));
+			} as ServerPayload));
 		if (message.serverContent?.interrupted)
 			ws.send(JSON.stringify({
 				type: 'interrupted',
 				payload: {}
-			} as Payload));
+			} as ServerPayload));
 	});
 
 	ws.on('message', async (data) => {
 		if (!session.isConnected()) return;
 
-		const message: Payload = (() => {
+		const message: ClientPayload = (() => {
 			try {
 				return JSON.parse(data.toString());
 			} catch (err) {
@@ -113,7 +113,7 @@ wss.on('connection', async (ws, req) => {
 						code: 400,
 						message: `Invalid message format received. ${(err as Error).message}`
 					}
-				} as Payload));
+				} as ServerPayload));
 				logger.status('error', 'Failed to parse WebSocket message');
 				logger.error(`  ${(err as Error).message}`, 'dim');
 				return null;

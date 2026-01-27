@@ -49,7 +49,7 @@ graph TB
 
 ### 1. Server & Transport Layer (`src/servers/`)
 
-The server layer handles communication with clients through multiple transport protocols:
+The server layer handles communication with clients through multiple transport protocols using a standardized [Payload format](./Payload.md):
 
 **server.ts**
 - Express HTTP server setup
@@ -58,6 +58,8 @@ The server layer handles communication with clients through multiple transport p
 **WebSocket.ts**
 - WebSocket transport implementation
 - Handles real-time bidirectional communication
+- Serializes Session events into Payloads
+- Deserializes client input into Session commands
 - Message routing and client connection management
 
 **Future Transport Protocols:**
@@ -66,18 +68,24 @@ The server layer handles communication with clients through multiple transport p
 - gRPC
 - Custom protocols
 
+All transport implementations must:
+1. Convert incoming client data into Session commands
+2. Convert Session events into standardized Payloads
+3. Send Payloads to clients using their transport protocol
+
 ```mermaid
 graph LR
     Clients["Clients"]
-    Transport["Transport Layer<br/>(Protocol abstraction)"]
-    Handler["Message Handler"]
+    Transport["Transport Layer<br/>(Multiple protocols)"]
+    Serializer["Payload<br/>Serialization"]
     Session["Session Manager"]
 
-    Clients -->|Various Protocols| Transport
-    Transport -->|Normalized Messages| Handler
-    Handler -->|Session Commands| Session
-    Session -->|Events| Transport
-    Transport -->|Response Data| Clients
+    Clients -->|Protocol-specific| Transport
+    Transport -->|Normalize| Serializer
+    Serializer -->|Command| Session
+    Session -->|Event| Serializer
+    Serializer -->|Payload| Transport
+    Transport -->|Protocol-specific| Clients
 ```
 
 ### 2. Session Management (`src/services/Session.ts`)
@@ -174,12 +182,14 @@ sequenceDiagram
 sequenceDiagram
     participant User as User Input
     participant Transport as Transport Layer
+    participant Payload as Payload Handler
     participant Session as Session
     participant Gemini as Gemini API
     participant MCP as MCP Tools
 
-    User->>Transport: Send input data
-    Transport->>Session: Forward data
+    User->>Transport: Send input (protocol-specific)
+    Transport->>Payload: Normalize to Payload
+    Payload->>Session: Process input
     Session->>Gemini: Process input
     alt Tool Execution Needed
         Gemini->>Session: Tool call request
@@ -188,9 +198,21 @@ sequenceDiagram
         Session->>Gemini: Send tool result
     end
     Gemini->>Session: Generate response
-    Session->>Transport: Response data
-    Transport->>User: Return response
+    Session->>Payload: Create response Payload(s)
+    Payload->>Transport: Serialize response
+    Transport->>User: Send output (protocol-specific)
 ```
+
+**Payload Types Used:**
+- `status` - Session ready/processing state
+- `audio` - Audio response data
+- `text` - Text response data
+- `transcription` - Transcribed input/output
+- `thought` - Internal reasoning
+- `turn_complete` - Interaction complete
+- `error` - Error conditions
+
+See [Payload Standard](./Payload.md) for detailed message types.
 
 ### Tool Execution Flow
 
@@ -229,6 +251,7 @@ See [types/SessionEvents.d.ts](../types/SessionEvents.d.ts) for the complete eve
 - **Memory**: `sandbox/memory.jsonl` - Persistent memory store managed by MCP memory server
 - **System Prompt**: `prompts/system_prompt.md` - System instructions for Gemini
 - **Configuration**: Environment variables and config files
+- **Payload Definitions**: [types/Payload.d.ts](../types/Payload.d.ts) - Standardized message format for all protocols
 
 ## Technology Stack
 

@@ -6,7 +6,7 @@ import speaker from 'speaker';
 // @ts-ignore
 import mic from 'mic';
 
-import type Payload from '../types/Payload.d.ts';
+import type { ServerPayload, ClientPayload } from '../types/Payload.d.ts';
 
 const ws = new WebSocket('ws://localhost:3000/ws', {
 	headers: {
@@ -36,7 +36,7 @@ ws.on('open', () => {
 
 let previousSpeaker: 'input' | 'output' | null = null;
 ws.on('message', (data) => {
-	const message: Payload = JSON.parse(data.toString());
+	const message: ServerPayload = JSON.parse(data.toString());
 
 	if (message.type === 'audio' && message.payload?.audio) {
 		const audioBuffer = Buffer.from(message.payload.audio, 'base64');
@@ -50,7 +50,7 @@ ws.on('message', (data) => {
 				payload: {
 					text: 'Hello! Introduce yourself.'
 				}
-			} as Payload));
+			} as ClientPayload));
 
 	if (message.type === 'error') {
 		console.error(`Error ${message.payload.code}: ${message.payload.message}`);
@@ -87,7 +87,7 @@ ws.on('message', (data) => {
 
 micInputStream.on('data', (data: Buffer) => {
 	const audioBase64 = data.toString('base64');
-	const payload: Payload = {
+	const payload: ClientPayload = {
 		type: 'audio',
 		payload: {
 			audio: audioBase64
