@@ -1,10 +1,10 @@
 # Introduction
 
-Welcome to the documentation! This guide will help you get started with Cyra and understand its core features and functionalities.
+Welcome to the documentation! This guide will help you get started with cyra and understand its core features and functionalities.
 
-## What is Cyra?
+## What is cyra?
 
-**Cyra** (pronounced "Sigh-ra") stands for **"Can You Really Assist?"** - a real-time voice assistant powered by Google's Gemini AI. It's a TypeScript-based application that enables natural, conversational interactions with AI while seamlessly integrating with your file system through dynamic tool execution.
+**cyra** (pronounced "Sigh-ra") stands for **"Can You Really Assist?"** - a real-time voice assistant powered by Google's Gemini AI. It's a TypeScript-based application that enables natural, conversational interactions with AI while seamlessly integrating with your file system through dynamic tool execution.
 
 ## Key Features
 
@@ -18,7 +18,7 @@ Welcome to the documentation! This guide will help you get started with Cyra and
 
 ## Getting Started
 
-To begin using Cyra, you'll need:
+To begin using cyra, you'll need:
 
 - Node.js 18 or higher
 - npm package manager
