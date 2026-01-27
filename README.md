@@ -4,16 +4,21 @@
 
 A real-time voice assistant powered by Google's Gemini AI. cyra (pronounced "Sigh-ra") is a TypeScript-based voice interface that lets you have natural conversations and interact with your file system through dynamic tool execution.
 
-## Features
+## 📚 Documentation
 
-- 🎤 **Real-time Voice Interaction**: Communicate with Gemini AI using voice input and output
-- 🛠️ **Dynamic Tool Execution**: Automatically load and execute file system operations
-- 🔄 **Hot Reloading**: Tools reload automatically when files change ~~(broken)~~ (beta)
-- 🎵 **Audio Streaming**: Real-time audio input from microphone and output to speaker
-- ⌨️ **Keyboard Controls**: Easy pause/resume and quit functionality
-- 📝 **TypeScript**: Fully typed codebase for reliability
+Complete documentation is available in the [docs/](./docs/) directory:
 
-## Prerequisites
+- **[Introduction](./docs/Introduction.md)** - Overview of cyra's features and capabilities
+- **[Installation Guide](./docs/Installation.md)** - Setup instructions for development and production
+- **[Architecture](./docs/Architecture.md)** - System design, components, and data flow
+- **[Payload Standard](./docs/Payload.md)** - Message format specification for client-server communication
 
-- Node.js 18+ and npm/yarn
-- Google Gemini API key
+## License
+
+MIT License - Copyright (c) 2025 Daniel John Baynosa
+
+See [LICENSE](./LICENSE) for details.
+
+## Support
+
+For detailed information and troubleshooting, see the [complete documentation](./docs/).

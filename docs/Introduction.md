@@ -14,7 +14,16 @@ Welcome to the documentation! This guide will help you get started with cyra and
 - [X] **Audio Streaming** - Full-duplex audio support with real-time microphone input and speaker output
 - [X] **Type-Safe** - Built entirely in TypeScript for enhanced reliability and developer experience
 - [X] **File System Access** - Interact with your local file system through AI-driven commands
-- [ ] **Recursive Agents** - (Coming Soon) Enable cyra to create sub-agents for complex tasks
+- [X] **Multi-Session Support** - Handle multiple concurrent user sessions with isolated contexts
+- [ ] **Recursive Agents** - Enable cyra to create sub-agents for complex tasks
+- [ ] **Human-in-the-Loop** - Allow human oversight and intervention in AI decision-making
+- [ ] **Transport Protocols**:
+  - [X] **WebSocket** - Real-time communication using WebSockets
+  - [ ] **HTTP/REST** - Interact with cyra via standard HTTP requests
+  - [ ] **gRPC** - High-performance communication using gRPC
+  - [ ] **Socket.io** - Real-time communication using Socket.io
+- [ ] **Plugin System** - Extend cyra's capabilities with custom plugins
+- [ ] **Multi-User Conversations** - Enable multiple users to connect and talk to a single session simultaneously
 
 ## Getting Started
 
