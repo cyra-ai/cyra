@@ -23,3 +23,19 @@ To begin using cyra, you'll need:
 - Node.js 18 or higher
 - npm package manager
 - A Google Gemini API key
+
+Follow the [Installation Guide](Installation.md) to set up your environment and start your first session with cyra!
+
+## Documentation Overview
+
+- **[Installation Guide](Installation.md)** - Set up cyra for development or production
+- **[Architecture](Architecture.md)** - Understand how cyra's components work together
+- **[Payload Standard](Payload.md)** - Learn the message format for client-server communication
+
+## Quick Navigation
+
+Depending on your needs:
+- **Getting started?** → [Installation Guide](Installation.md)
+- **Want to understand the system?** → [Architecture](Architecture.md)
+- **Building a client?** → [Payload Standard](Payload.md)
+- **Extending cyra?** → [Architecture](Architecture.md) → [Payload Standard](Payload.md)

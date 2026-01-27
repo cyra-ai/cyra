@@ -337,6 +337,12 @@ The Payload standard is intentionally:
 - **Modality-agnostic**: Can transport audio or text seamlessly
 - **Extensible**: New types can be added to `PayloadMap` without breaking existing code
 
+## Architecture Integration
+
+For details on how Payloads fit into the overall system, see the [Interaction Flow section in Architecture](./Architecture.md#interaction-flow).
+
+For transport implementation details, refer to the [Server & Transport Layer section](./Architecture.md#1-server--transport-layer-srcsers).
+
 ## Future Extensions
 
 To add new message types:
@@ -433,3 +439,8 @@ To add new message types:
   "payload": {}
 }
 ```
+## Related Documentation
+
+- **[Introduction](./Introduction.md)** - Feature overview and getting started
+- **[Installation Guide](./Installation.md)** - How to set up and run cyra
+- **[Architecture](./Architecture.md)** - Overall system design and components
