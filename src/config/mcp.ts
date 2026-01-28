@@ -25,7 +25,7 @@ const config: StdioServerParameters[] = [
 		args: [
 			'-y',
 			'@modelcontextprotocol/server-filesystem',
-			path.join(process.cwd(), 'sandbox')
+			sandboxPath
 		],
 		cwd: process.cwd()
 	},
@@ -43,8 +43,15 @@ const config: StdioServerParameters[] = [
 			'@modelcontextprotocol/server-memory'
 		],
 		env: {
-			MEMORY_FILE_PATH: path.join(process.cwd(), 'sandbox', 'memory.jsonl')
+			MEMORY_FILE_PATH: memoryFilePath
 		}
+	},
+	{
+		command: 'npx',
+		args: [
+			'-y',
+			'@leonardommello/copilot-mcp-server'
+		]
 	}
 ];
 

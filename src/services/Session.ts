@@ -47,8 +47,31 @@ class Session extends EvEmitter {
 			: 'You are a helpful AI assistant.';
 
 		const tools: CallableTool[] = [];
-		for (const client of MCPClients)
+		const toolInfos: string[] = [];
+		for (const client of MCPClients) {
 			tools.push(mcpToTool(client));
+			const MCPTools = (await client.listTools()).tools;
+
+			for (const tool of MCPTools) {
+				let info = '';
+				info += `### ${tool.name}\n`;
+				info += tool.description ? `${tool.description}\n` : '';
+				info += '#### Input Schema\n';
+				info += '```json\n';
+				info += tool.inputSchema
+					? JSON.stringify(tool.inputSchema, null, 2)
+					: '{ "type": "object", "properties": {} }';
+				info += '\n```\n';
+				info += '#### Output Schema\n';
+				info += '```json\n';
+				info += tool.outputSchema
+					? JSON.stringify(tool.outputSchema, null, 2)
+					: '{ "type": "object", "properties": {} }';
+				info += '\n```\n';
+				toolInfos.push(info);
+			};
+		};
+		const parsedSystemPrompt = systemPrompt.replace('{{mcp_tools_list}}', toolInfos.join('\n'));
 
 		// Wait for setupComplete before declaring the session ready
 		// eslint-disable-next-line no-async-promise-executor
@@ -64,7 +87,7 @@ class Session extends EvEmitter {
 					proactivity: { proactiveAudio: true },
 					systemInstruction: {
 						parts: [
-							{ text: systemPrompt }
+							{ text: parsedSystemPrompt }
 						]
 					},
 					tools: [...tools, { googleSearch: {} }]
