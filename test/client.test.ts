@@ -48,7 +48,7 @@ ws.on('message', (data) => {
 			ws.send(JSON.stringify({
 				type: 'text',
 				payload: {
-					text: 'Hello! Introduce yourself.'
+					text: 'cyra'
 				}
 			} as ClientPayload));
 
