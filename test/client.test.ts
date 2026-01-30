@@ -3,8 +3,9 @@ await import('dotenv').then(dotenv => dotenv.config());
 import { WebSocket } from 'ws';
 
 import speaker from 'speaker';
-// @ts-ignore
-import mic from 'mic';
+import NodeMic from 'node-mic';
+import fs from 'fs';
+import path from 'path';
 
 import type { ServerPayload, ClientPayload } from '../types/Payload.d.ts';
 
@@ -14,14 +15,15 @@ const ws = new WebSocket('ws://localhost:3000/ws', {
 		model: process.env.GEMINI_MODEL || 'gemini-2.5-flash-native-audio-preview-12-2025'
 	}
 });
-const micInstance = mic({
-	rate: '16000',
-	channels: '1',
-	debug: false,
-	exitOnSilence: 6,
-	device: 'plughw:2,0'
+const mic = new NodeMic({
+	rate: 16000,
+	channels: 1,
+	device: 'plughw:0,0'
 });
-const micInputStream = micInstance.getAudioStream();
+const micInputStream = mic.getAudioStream();
+
+const outputFile = fs.createWriteStream(path.join(process.cwd(), 'tmp', 'output.raw'));
+micInputStream.pipe(outputFile);
 
 const speakerInstance = new speaker({
 	channels: 1,
@@ -31,7 +33,7 @@ const speakerInstance = new speaker({
 
 ws.on('open', () => {
 	console.log('WebSocket connection established.');
-	micInstance.start();
+	mic.start();
 });
 
 let previousSpeaker: 'input' | 'output' | null = null;
@@ -54,7 +56,7 @@ ws.on('message', (data) => {
 
 	if (message.type === 'error') {
 		console.error(`Error ${message.payload.code}: ${message.payload.message}`);
-		micInstance.stop();
+		mic.stop();
 		speakerInstance.end();
 		ws.close();
 	};
@@ -104,7 +106,7 @@ micInputStream.on('error', (err: Error) => {
 
 ws.on('close', () => {
 	console.log('WebSocket connection closed.');
-	micInstance.stop();
+	mic.stop();
 	speakerInstance.end();
 });
 

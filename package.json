@@ -7,7 +7,7 @@
 		"build": "tsc",
 		"dev": "nodemon --require ts-node/register src/index.ts --ignore tmp/**",
 		"start": "node --require ts-node/register src/index.ts",
-		"test:client": "node test/client.test.ts",
+		"test:client": "nodemon --require ts-node/register --delay 5 test/client.test.ts",
 		"lint": "eslint src/**/*.ts",
 		"lint:fix": "eslint src/**/*.ts --fix",
 		"pre-commit": "lint-staged"
@@ -43,7 +43,7 @@
 		"husky": "^9.1.7",
 		"jiti": "^2.6.1",
 		"lint-staged": "^16.2.7",
-		"mic": "^2.1.2",
+		"node-mic": "^1.0.1",
 		"nodemon": "^3.1.11",
 		"prettier": "^3.7.4",
 		"speaker": "^0.5.5",
