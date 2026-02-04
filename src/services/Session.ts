@@ -19,6 +19,11 @@ class Session extends EvEmitter {
 	private connected: boolean = false;
 	private session?: ISession;
 
+	private notificationQueue: string[] = [];
+	private turnComleted: boolean = false;
+	private timeInterval?: NodeJS.Timeout;
+	private notificationInterval?: NodeJS.Timeout;
+
 	constructor({
 		apiKey
 	}: {
@@ -114,6 +119,25 @@ class Session extends EvEmitter {
 		this.connected = true;
 		this.emit('ready');
 		logger.success('Gemini session ready');
+
+		// Time interval
+		this.timeInterval = setInterval(() => {
+			if (this.session && this.connected)
+				this.notificationQueue.push(`[time] ${(new Date()).toString()}`);
+		}, 1000 * 60);
+
+		// Notification interval
+		this.notificationInterval = setInterval(() => {
+			if (this.session && this.connected && this.notificationQueue.length > 0 && this.turnComleted) {
+				const notification = this.notificationQueue.shift();
+				if (notification) {
+					this.session.sendRealtimeInput({
+						text: notification
+					});
+					logger.status('success', `Sent notification: ${notification}`);
+				};
+			};
+		}, 1000);
 	};
 
 	disconnect(): void {
@@ -121,6 +145,17 @@ class Session extends EvEmitter {
 			this.session.close();
 			this.session = undefined;
 			this.connected = false;
+
+			if (this.timeInterval) {
+				clearInterval(this.timeInterval);
+				this.timeInterval = undefined;
+			};
+			if (this.notificationInterval) {
+				clearInterval(this.notificationInterval);
+				this.notificationInterval = undefined;
+			};
+
+			logger.success('Gemini session disconnected');
 		};
 	};
 
@@ -142,6 +177,7 @@ class Session extends EvEmitter {
 
 	private async handleMessage(data: LiveServerMessage): Promise<void> {
 		this.emit('message', data);
+		this.turnComleted = data.serverContent?.turnComplete || false;
 
 		// Handle function calls
 		for (const functionCall of data.toolCall?.functionCalls || []) {
