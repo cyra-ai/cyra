@@ -24,7 +24,7 @@ Welcome to the documentation! This guide will help you get started with cyra and
   - [ ] **Socket.io** - Real-time communication using Socket.io
 - [ ] **Plugin System** - Extend cyra's capabilities with custom plugins
 - [ ] **Multi-User Conversations** - Enable multiple users to connect and talk to a single session simultaneously
-- [ ] Garbage Collection - Automatically manage, archive, and delete outdated messages to optimize performance
+- [ ] **Garbage Collection** - Automatically manage, archive, and delete outdated sessions and data
 
 ## Getting Started
 
