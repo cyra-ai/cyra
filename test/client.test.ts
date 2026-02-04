@@ -18,7 +18,7 @@ const ws = new WebSocket('ws://localhost:3000/ws', {
 const mic = new NodeMic({
 	rate: 16000,
 	channels: 1,
-	device: 'plughw:0,0'
+	device: process.env.AUDIO_DEVICE || 'plughw:2,0'
 });
 const micInputStream = mic.getAudioStream();
 
