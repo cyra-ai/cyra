@@ -130,6 +130,13 @@ class Session extends EvEmitter {
 
 	sendRealtimeInput(params: LiveSendRealtimeInputParameters): void {
 		if (!this.session) throw new Error('Session is not connected.');
+
+		// Handle Message Tag injection
+		const tags = ['task', 'notification', 'system', 'time'];
+		for (const tag of tags)
+			if (params.text?.trim().toLocaleLowerCase()?.startsWith(`[${tag}]`))
+				params.text = params.text.replace(`[${tag}]`, '');
+
 		this.session.sendRealtimeInput(params);
 	};
 
