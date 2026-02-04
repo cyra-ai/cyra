@@ -119,25 +119,7 @@ class Session extends EvEmitter {
 		this.connected = true;
 		this.emit('ready');
 		logger.success('Gemini session ready');
-
-		// Time interval
-		this.timeInterval = setInterval(() => {
-			if (this.session && this.connected)
-				this.notificationQueue.push(`[time] ${(new Date()).toString()}`);
-		}, 1000 * 60);
-
-		// Notification interval
-		this.notificationInterval = setInterval(() => {
-			if (this.session && this.connected && this.notificationQueue.length > 0 && this.turnComleted) {
-				const notification = this.notificationQueue.shift();
-				if (notification) {
-					this.session.sendRealtimeInput({
-						text: notification
-					});
-					logger.status('success', `Sent notification: ${notification}`);
-				};
-			};
-		}, 1000);
+		this.initNotificationHandler();
 	};
 
 	disconnect(): void {
@@ -167,7 +149,7 @@ class Session extends EvEmitter {
 		if (!this.session) throw new Error('Session is not connected.');
 
 		// Handle Message Tag injection
-		const tags = ['task', 'notification', 'system', 'time'];
+		const tags = ['task', 'info', 'system', 'time'];
 		for (const tag of tags)
 			if (params.text?.trim().toLocaleLowerCase()?.startsWith(`[${tag}]`))
 				params.text = params.text.replace(`[${tag}]`, '');
@@ -228,6 +210,27 @@ class Session extends EvEmitter {
 					});
 			};
 		};
+	};
+
+	private async initNotificationHandler(): Promise<void> {
+		// Time interval
+		this.timeInterval = setInterval(() => {
+			if (this.session && this.connected)
+				this.notificationQueue.push(`[time] ${(new Date()).toString()}`);
+		}, 1000 * 60);
+
+		// Notification interval
+		this.notificationInterval = setInterval(() => {
+			if (this.session && this.connected && this.notificationQueue.length > 0 && this.turnComleted) {
+				const notification = this.notificationQueue.shift();
+				if (notification) {
+					this.session.sendRealtimeInput({
+						text: notification
+					});
+					logger.status('success', `Sent notification: ${notification}`);
+				};
+			};
+		}, 1000);
 	};
 };
 
