@@ -45,13 +45,6 @@ const config: StdioServerParameters[] = [
 		env: {
 			MEMORY_FILE_PATH: memoryFilePath
 		}
-	},
-	{
-		command: 'npx',
-		args: [
-			'-y',
-			'@leonardommello/copilot-mcp-server'
-		]
 	}
 ];
 
