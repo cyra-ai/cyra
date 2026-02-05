@@ -215,8 +215,14 @@ class Session extends EvEmitter {
 	private async initNotificationHandler(): Promise<void> {
 		// Time interval
 		this.timeInterval = setInterval(() => {
-			if (this.session && this.connected)
-				this.notificationQueue.push(`[time] ${(new Date()).toString()}`);
+			if (this.session && this.connected){
+				// Replace the latest time tag in the notification queue with the current time
+				const timeTagIndex = this.notificationQueue.findIndex(n => n.trim().toLocaleLowerCase().startsWith('[time]'));
+				if (timeTagIndex !== -1)
+					this.notificationQueue[timeTagIndex] = `[time] ${(new Date()).toString()}`;
+				else
+					this.notificationQueue.push(`[time] ${(new Date()).toString()}`);
+			};
 		}, 1000 * 60);
 
 		// Notification interval
